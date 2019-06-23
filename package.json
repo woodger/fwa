@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "0.0.1",
+  "version": "1.0.1",
   "description": "Component view on JavaScript Template literals (Template strings)",
   "scripts": {
     "test": "mocha"
@@ -15,7 +15,7 @@
     "nebbia"
   ],
   "author": {
-    "name": "Stanislav Potemkin",
+    "name": "Stanislav Woodger",
     "email": "woodger@ya.ru"
   },
   "license": "MIT",
