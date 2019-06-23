@@ -45,14 +45,14 @@ describe('#fwa()', () => {
         '.viewrc': `
         {
           "copy": [
-            "harp.js : bind/scripts"
+            "utils.js : bind/scripts"
           ],
           "templates": [
             "loader.js"
           ]
         }
         `,
-        'harp.js': '',
+        'utils.js': '',
         'loader.js': '<i>${_.content}</i>',
         bind: mockFs.directory()
       });
@@ -66,7 +66,7 @@ describe('#fwa()', () => {
       const render = fwa((calls, props) => {});
 
       assert(
-        await pfs.test('./bind/scripts/harp.js')
+        await pfs.test('./bind/scripts/utils.js')
       );
     });
 
