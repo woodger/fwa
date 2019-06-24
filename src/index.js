@@ -34,7 +34,7 @@ module.exports = (handler, pwd) => {
     sync: true
   });
 
-  const calls = {};
+  const tmpls = {};
 
   if (exist) {
     const content = pfs.read('./.viewrc', {
@@ -76,11 +76,11 @@ module.exports = (handler, pwd) => {
 
       const template = nebbia(content.replace(/`/g, '\\`'));
 
-      calls[loc] = new Function('_', 'return ' + template);
+      tmpls[loc] = new Function('_', 'return ' + template);
     }
   }
 
   return (props) => {
-    return handler(calls, props);
+    return handler(tmpls, props);
   };
 };
