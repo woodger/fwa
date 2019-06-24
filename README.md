@@ -14,6 +14,12 @@ Why would we ever want to do so?
 
 `Fwa` components can be reused and embedded into each other.
 
+### How is works?
+
+![](http://yuml.me/diagram/scruffy;dir:LR/class/[Props{bg:powderblue}]-.->[Function{bg:whitesmoke}],[Fwa{bg:yellow}]->[Nebbia{bg:yellowgreen}],[Nebbia]->[Function],[.viewrc{bg:white}]-.->[Fwa],[Fwa]->[Template{bg:whitesmoke}],[Template]->[Nebbia])
+
+Templates, as defined in the `.viewrc` configuration file, the `fwa` sends to [nebbia](https://www.npmjs.com/package/nebbia). Nebbia returns a `function` and waits for a call with a `props`.
+
 ## Getting Started
 
 ### Installation
@@ -27,13 +33,14 @@ npm i fwa
 [Node.js®](https://nodejs.org/) module, implemented by following the [ECMAScript® 2018 Language Specification
 ](https://www.ecma-international.org/ecma-262/9.0/index.html) standard.
 
-### How is works?
+### API docs
 
-![](http://yuml.me/diagram/scruffy;dir:LR/class/[Template{bg:snow}]->parse[Nebbia],[Nebbia{bg:yellowgreen}]->[Function{bg:yellow}],[Props{bg:turquoise}]->render[Function])
+#### fwa(handler)
 
-The module contains a single function. The function expects a handler function as a required parameter. Returns the function of the render as parameters can take any value and passes the handler to the function. Calling the render function calls the handler function.
+- `handler` <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> A function that is passed with the arguments `tmpls` and `props`. Template literals (Template strings) are cached in `tmpls` object when they are required. `props` can used be any type of data.
+- returns: <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> The renderer function which proxy the function `handler` with the argument `props` from its own parameter.
 
-The simplest example of creating a component:
+The simplest example of run a component:
 
 ```js
 const fwa = require('fwa');
@@ -45,6 +52,8 @@ const render = fwa((tmpls, props) => {
 const html = render('Hello World'); // <!DOCTYPE html><html><head...
 ```
 
+> NOTE `handler` can return be any type of data
+
 #### File-relative configuration
 
 Module `fwa` loads `.viewrc`  file by searching up the directory root starting from the filename being compiled. This can be powerful because it allows you to create independent configurations for subsections of a `component`. The presence of a configuration `.viewrc` file is optional.
@@ -52,19 +61,32 @@ Module `fwa` loads `.viewrc`  file by searching up the directory root starting f
 - `copy` <[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)> Copies static file from this `component` to directory for static production. The source file and destination directory must be separated by the symbol `:`. Destination relative paths will be resolved relative to the current working directory as specified by [process.cwd()](https://nodejs.org/api/process.html#process_process_cwd).
 
 - `templates` <[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)> List the file names that will be transferred to
-JavaScript Template literals (Template strings).
+JavaScript Template literals (Template strings). Each template is parsed using the [nebbia](https://www.npmjs.com/package/nebbia) npm module.
+
+#### File structure of component
+
+Local `fwa` components can be imported using a relative path (e.g. `../components`, `../pages`)
+
+**components/form**
+
+```
+.
+├── index.js
+├── ui
+│   ├── index.html
+│   └── style.css
+└── .viewrc
+```
 
 **.viewrc**
 
 ```json
 {
   "copy": [
-    "./utils.js : ./bind",
-    "./form/index.js : ./bind/form"
+    "./ui/style.css : ./bind/form"
   ],
   "templates": [
-    "style.css",
-    "index.htm"
+    "ui/index.html"
   ]
 }
 ```
@@ -75,6 +97,13 @@ JavaScript Template literals (Template strings).
 const fwa = require('fwa');
 
 module.exports = fwa((tmpls, props) => {
+  const html = tmpls['ui/index.html'](props);
 
+  return {
+    html,
+    style: './bind/form/style.css'
+  };
 });
 ```
+
+The `fwa` component reduces the document size, allows you to collect and use only the necessary js-scripts and css-styles. Don’t repeat yourself `DRY` and keep it simple stupid `KISS` in actions.
