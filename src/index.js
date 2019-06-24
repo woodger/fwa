@@ -5,10 +5,10 @@ const nebbia = require('nebbia');
 
 const te = new TypeEnforcement({
   '#fwa()': {
-    handler: Function,
+    callback: Function,
     pwd: String
   },
-  '.viewrc': {
+  '.fwarc': {
     copy: Array,
     templates: Array
   }
@@ -19,9 +19,9 @@ const re = {
   dots: / *: */
 };
 
-module.exports = (handler, pwd) => {
+module.exports = (callback, pwd) => {
   const err = te.validate('#fwa()', {
-    handler,
+    callback,
     pwd
   });
 
@@ -30,20 +30,27 @@ module.exports = (handler, pwd) => {
   }
 
   const pfs = new PoweredFileSystem(pwd);
-  const exist = pfs.test('./.viewrc', {
-    sync: true
+  const configFiles = [
+    './.fwarc',
+    './.fwarc.js'
+  ];
+
+  const config = configFiles.find(loc => {
+    return pfs.test(loc, {
+      sync: true
+    });
   });
 
   const tmpls = {};
 
-  if (exist) {
-    const content = pfs.read('./.viewrc', {
+  if (config !== undefined) {
+    const content = pfs.read(config, {
       sync: true
     });
 
     const {copy = [], templates = []} = JSON.parse(content);
 
-    const err = te.validate('.viewrc', {
+    const err = te.validate('.fwarc', {
       copy,
       templates
     });
@@ -54,7 +61,7 @@ module.exports = (handler, pwd) => {
 
     for (let i of copy) {
       if (typeof i !== 'string') {
-        throw new Error(`Invalid value 'copy' in .viewrc. Expected 'string'`);
+        throw new Error(`Invalid value 'copy' in .fwarc. Expected 'string'`);
       }
 
       const [src, dir] = i.split(re.dots);
@@ -81,6 +88,6 @@ module.exports = (handler, pwd) => {
   }
 
   return (props) => {
-    return handler(tmpls, props);
+    return callback(tmpls, props);
   };
 };

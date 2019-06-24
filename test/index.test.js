@@ -24,7 +24,7 @@ describe('#fwa()', () => {
       catch (e) {
         assert(
           e.message ===
-          `Invalid value 'handler' in order '#fwa()'. Expected Function`
+          `Invalid value 'callback' in order '#fwa()'. Expected Function`
         );
       }
     });
@@ -42,7 +42,7 @@ describe('#fwa()', () => {
 
     beforeEach(() => {
       mockFs({
-        '.viewrc': `
+        '.fwarc': `
         {
           "copy": [
             "utils.js : bind/scripts"
@@ -62,7 +62,7 @@ describe('#fwa()', () => {
       mockFs.restore();
     });
 
-    it(`Must 'copy' the files as defined in the file '.viewrc'`, async () => {
+    it(`Must 'copy' the files as defined in the file '.fwarc'`, async () => {
       const render = fwa((calls, props) => {});
 
       assert(
@@ -70,8 +70,8 @@ describe('#fwa()', () => {
       );
     });
 
-    it(`If there is no file '.viewrc', the initialization must pass`, async () => {
-      await pfs.remove('./.viewrc');
+    it(`If there is no file '.fwarc', the initialization must pass`, async () => {
+      await pfs.remove('./.fwarc');
       const render = fwa((calls, props) => {});
 
       assert(
@@ -79,8 +79,8 @@ describe('#fwa()', () => {
       );
     });
 
-    it(`Throw an exception if file '.viewrc' is not Object`, async () => {
-      await pfs.write('./.viewrc', '');
+    it(`Throw an exception if file '.fwarc' is not Object`, async () => {
+      await pfs.write('./.fwarc', '');
 
       try {
         const render = fwa((calls, props) => {});
@@ -98,8 +98,8 @@ describe('#fwa()', () => {
     for (let i of Object.keys(options)) {
       const {name} = options[i];
 
-      it(`Throw an exception if '${i}' is not ${name} in the file '.viewrc'`, async () => {
-        await pfs.write('./.viewrc', `
+      it(`Throw an exception if '${i}' is not ${name} in the file '.fwarc'`, async () => {
+        await pfs.write('./.fwarc', `
         {
           "${i}": ""
         }
@@ -111,15 +111,15 @@ describe('#fwa()', () => {
         catch (err) {
           assert(
             err.message ===
-            `Invalid value '${i}' in order '.viewrc'. Expected ${name}`
+            `Invalid value '${i}' in order '.fwarc'. Expected ${name}`
           );
         }
       });
     }
 
     it(`Throw an exception if value in the array 'copy' is not string ` +
-    `in the file '.viewrc' `, async () => {
-      await pfs.write('./.viewrc', `
+    `in the file '.fwarc' `, async () => {
+      await pfs.write('./.fwarc', `
       {
         "copy": [ null ]
       }
@@ -131,12 +131,12 @@ describe('#fwa()', () => {
       catch (err) {
         assert(
           err.message ===
-          `Invalid value 'copy' in .viewrc. Expected 'string'`
+          `Invalid value 'copy' in .fwarc. Expected 'string'`
         );
       }
     });
 
-    it(`Must create template functions as defined in the file '.viewrc'`, () => {
+    it(`Must create template functions as defined in the file '.fwarc'`, () => {
       const render = fwa((calls, props) => {
         assert(
           typeof calls['loader.js'] === 'function'
@@ -157,7 +157,7 @@ describe('#fwa()', () => {
     });
 
     it(`The returned function must take 'any type' of data and pass ` +
-    `the second argument to the 'handler'`, () => {
+    `the second argument to the 'callback'`, () => {
       const render = fwa((calls, props) => {
         const html = calls['loader.js']({
           content: props
@@ -169,7 +169,7 @@ describe('#fwa()', () => {
       render('test');
     });
 
-    it(`The handler can return 'any type' of data`, () => {
+    it(`The 'callback' can return 'any type' of data`, () => {
       const render = fwa((calls, props) => {
         return calls['loader.js']({
           content: props

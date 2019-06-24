@@ -12,7 +12,7 @@ const fwa = require('./src');
 
 delete require.cache[__filename];
 
-module.exports = (handler) => {
+module.exports = (callback) => {
   const pwd = path.dirname(module.parent.filename);
-  return fwa(handler, pwd);
+  return fwa(callback, pwd);
 };
