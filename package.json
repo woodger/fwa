@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "1.0.1",
+  "version": "1.1.2",
   "description": "Component view on JavaScript Template literals (Template strings)",
   "scripts": {
     "test": "mocha"

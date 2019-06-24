@@ -16,9 +16,9 @@ Why would we ever want to do so?
 
 ### How is works?
 
-![](http://yuml.me/diagram/scruffy;dir:LR/class/[Props{bg:powderblue}]-.->[Function{bg:whitesmoke}],[Fwa{bg:yellow}]->[Nebbia{bg:yellowgreen}],[Nebbia]->[Function],[.viewrc{bg:white}]-.->[Fwa],[Fwa]->[Template{bg:whitesmoke}],[Template]->[Nebbia])
+![](http://yuml.me/diagram/scruffy;dir:LR/class/[Props{bg:powderblue}]-.->[Function{bg:whitesmoke}],[Fwa{bg:yellow}]->[Nebbia{bg:yellowgreen}],[Nebbia]->[Function],[.fwarc{bg:white}]-.->[Fwa],[Fwa]->[Template{bg:whitesmoke}],[Template]->[Nebbia])
 
-Templates, as defined in the `.viewrc` configuration file, the `fwa` sends to [nebbia](https://www.npmjs.com/package/nebbia). Nebbia returns a `function` and waits for a call with a `props`.
+Templates, as defined in the `.fwarc` (or `.fwarc.js`) configuration file, the `fwa` sends to [nebbia](https://www.npmjs.com/package/nebbia). Nebbia returns a `function` and waits for a call with a `props`.
 
 ## Getting Started
 
@@ -35,10 +35,10 @@ npm i fwa
 
 ### API docs
 
-#### fwa(handler)
+#### fwa(callback)
 
-- `handler` <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> A function that is passed with the arguments `tmpls` and `props`. Template literals (Template strings) are cached in `tmpls` object when they are required. `props` can used be any type of data.
-- returns: <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> The renderer function which proxy the function `handler` with the argument `props` from its own parameter.
+- `callback` <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> A function that is passed with the arguments `tmpls` and `props`. Template literals (Template strings) are cached in `tmpls` object when they are required. `props` can used be any type of data.
+- returns: <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> The renderer function which proxy the function `callback` with the argument `props` from its own parameter.
 
 The simplest example of run a component:
 
@@ -52,11 +52,11 @@ const render = fwa((tmpls, props) => {
 const html = render('Hello World'); // <!DOCTYPE html><html><head...
 ```
 
-> NOTE `handler` can return be any type of data
+> NOTE `callback` can return be any type of data
 
 #### File-relative configuration
 
-Module `fwa` loads `.viewrc`  file by searching up the directory root starting from the filename being compiled. This can be powerful because it allows you to create independent configurations for subsections of a `component`. The presence of a configuration `.viewrc` file is optional.
+Module `fwa` loads `.fwarc` (or `.fwarc.js`) files by searching up the directory root starting from the filename being compiled. This can be powerful because it allows you to create independent configurations for subsections of a `component`. The presence of a configuration `.fwarc` file is optional.
 
 - `copy` <[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)> Copies static file from this `component` to directory for static production. The source file and destination directory must be separated by the symbol `:`. Destination relative paths will be resolved relative to the current working directory as specified by [process.cwd()](https://nodejs.org/api/process.html#process_process_cwd).
 
@@ -75,10 +75,10 @@ Local `fwa` components can be imported using a relative path (e.g. `../component
 ├── ui
 │   ├── index.html
 │   └── style.css
-└── .viewrc
+└── .fwarc
 ```
 
-**.viewrc**
+**.fwarc**
 
 ```json
 {
