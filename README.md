@@ -80,13 +80,13 @@ Local `fwa` components can be imported using a relative path (e.g. `../component
 
 **.fwarc**
 
-```json
+```js
 {
-  "copy": [
-    "./ui/style.css : ./bind/form"
+  copy: [
+    './ui/style.css : ./bind/form'
   ],
-  "templates": [
-    "ui/index.html"
+  templates: [
+    'ui/index.html'
   ]
 }
 ```

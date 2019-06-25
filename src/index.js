@@ -48,7 +48,9 @@ module.exports = (callback, pwd) => {
       sync: true
     });
 
-    const {copy = [], templates = []} = JSON.parse(content);
+    const {copy = [], templates = []} = (
+      new Function(`return (${content})`)
+    )();
 
     const err = te.validate('.fwarc', {
       copy,
