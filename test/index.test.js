@@ -44,11 +44,11 @@ describe('#fwa()', () => {
       mockFs({
         '.fwarc': `
         {
-          "copy": [
-            "utils.js : bind/scripts"
+          copy: [
+            'utils.js : bind/scripts'
           ],
-          "templates": [
-            "loader.js"
+          templates: [
+            'loader.js'
           ]
         }
         `,
@@ -79,15 +79,22 @@ describe('#fwa()', () => {
       );
     });
 
-    it(`Throw an exception if file '.fwarc' is not Object`, async () => {
-      await pfs.write('./.fwarc', '');
+    it(`If there is no file '.fwarc', the initialization must pass`, async () => {
+      await pfs.remove('./.fwarc');
+      const render = fwa((calls, props) => {});
 
-      try {
-        const render = fwa((calls, props) => {});
-      }
-      catch (e) {
-        assert(e.message === 'Unexpected end of JSON input');
-      }
+      assert(
+        typeof render === 'function'
+      );
+    });
+
+    it(`The configuration file '.fwarc' may be '.js' extend`, async () => {
+      await pfs.rename('./.fwarc', './.fwarc.js');
+      const render = fwa((calls, props) => {});
+
+      assert(
+        typeof render === 'function'
+      );
     });
 
     const options = {
@@ -101,7 +108,7 @@ describe('#fwa()', () => {
       it(`Throw an exception if '${i}' is not ${name} in the file '.fwarc'`, async () => {
         await pfs.write('./.fwarc', `
         {
-          "${i}": ""
+          '${i}': ''
         }
         `);
 
@@ -121,7 +128,7 @@ describe('#fwa()', () => {
     `in the file '.fwarc' `, async () => {
       await pfs.write('./.fwarc', `
       {
-        "copy": [ null ]
+        copy: [ null ]
       }
       `);
 
