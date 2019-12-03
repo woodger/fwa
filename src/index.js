@@ -63,7 +63,7 @@ module.exports = (callback, pwd) => {
 
     for (let i of copy) {
       if (typeof i !== 'string') {
-        throw new Error(`Invalid value 'copy' in .fwarc. Expected 'string'`);
+        throw new Error("Invalid value 'copy' in .fwarc. Expected 'string'");
       }
 
       const [src, dir] = i.split(re.dots);
@@ -78,14 +78,14 @@ module.exports = (callback, pwd) => {
       });
     }
 
-    for (let loc of templates) {
-      const content = pfs.read(loc, {
+    for (let i of templates) {
+      const content = pfs.read(i, {
         sync: true
       });
 
       const template = nebbia(content.replace(/`/g, '\\`'));
 
-      tmpls[loc] = new Function('_', 'return ' + template);
+      tmpls[i] = new Function('_', 'return ' + template);
     }
   }
 

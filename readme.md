@@ -37,6 +37,8 @@ npm i fwa
 
 #### fwa(callback)
 
+Implements a higher-order function interface.
+
 - `callback` <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> A function that is passed with the arguments `tmpls` and `props`. Template literals (Template strings) are cached in `tmpls` object when they are required. `props` can used be any type of data.
 - returns: <[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)> The renderer function which proxy the function `callback` with the argument `props` from its own parameter.
 
