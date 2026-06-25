@@ -4,7 +4,7 @@
   "description": "Compiled Suite Runner",
   "scripts": {
     "build": "tsc",
-    "test": "node dist/suite.js",
+    "test": "node dist/bootstrap/cli.js",
     "lint": "eslint src eslint.config.mjs"
   },
   "repository": {
@@ -22,7 +22,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "fwa": "./dist/cli.js"
+    "fwa": "./dist/bootstrap/cli.js"
   },
   "dependencies": {
     "typescript": "^6.0.3"

@@ -2,7 +2,7 @@
 
 import process from 'node:process';
 
-import { runSuite } from './suite';
+import { runSuite } from './run-suite.bootstrap';
 
 runSuite({
   projectDir: process.cwd(),
