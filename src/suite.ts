@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
+import * as ts from 'typescript';
 
 /**
  * Поддерживаемые расширения тестовых файлов.
@@ -74,6 +75,15 @@ type SuiteRunnerOptions = Partial<CompiledTestCleanupOptions> & {
    * если он тоже находится внутри dist.
    */
   runnerFile?: string;
+};
+
+type ResolvedSuiteRunnerOptions = CompiledTestCleanupOptions & {
+  runnerFile: string;
+};
+
+type TsConfigDirectories = {
+  sourceDir: string;
+  distDir: string;
 };
 
 /**
@@ -188,6 +198,118 @@ function isFileNotFoundError(error: unknown): boolean {
   );
 }
 
+function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
+  return ts.formatDiagnostics(diagnostics, {
+    getCanonicalFileName: (file) => file,
+    getCurrentDirectory: () => process.cwd(),
+    getNewLine: () => '\n'
+  });
+}
+
+function readTsConfigDirectories(projectDir: string): TsConfigDirectories {
+  const configFile = ts.findConfigFile(
+    projectDir,
+    (file) => ts.sys.fileExists(file),
+    'tsconfig.json'
+  );
+
+  if (configFile === undefined) {
+    throw new Error(`Cannot find tsconfig.json from ${projectDir}`);
+  }
+
+  const configResult = ts.readConfigFile(
+    configFile,
+    (file) => ts.sys.readFile(file)
+  );
+
+  if (configResult.error !== undefined) {
+    throw new Error(formatTsDiagnostics([configResult.error]));
+  }
+
+  const configDir = path.dirname(configFile);
+  const parsedConfig = ts.parseJsonConfigFileContent(
+    configResult.config,
+    ts.sys,
+    configDir,
+    {},
+    configFile
+  );
+
+  if (parsedConfig.errors.length) {
+    throw new Error(formatTsDiagnostics(parsedConfig.errors));
+  }
+
+  if (parsedConfig.options.outDir === undefined) {
+    throw new Error(
+      `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
+    );
+  }
+
+  return {
+    sourceDir: parsedConfig.options.rootDir ?? configDir,
+    distDir: parsedConfig.options.outDir
+  };
+}
+
+function assertDirectory(dir: string, name: string, projectDir: string): void {
+  let stat: fs.Stats;
+
+  try {
+    stat = fs.statSync(dir);
+  }
+  catch (error) {
+    if (isFileNotFoundError(error)) {
+      throw new Error(
+        `${name} does not exist: ${toProjectPath(dir, projectDir) || '.'}`,
+        { cause: error }
+      );
+    }
+
+    throw error;
+  }
+
+  if (!stat.isDirectory()) {
+    throw new Error(`${name} is not a directory: ${toProjectPath(dir, projectDir) || '.'}`);
+  }
+}
+
+export function resolveSuiteOptions(
+  options: SuiteRunnerOptions = {}
+): ResolvedSuiteRunnerOptions {
+  const projectDir = path.resolve(options.projectDir ?? process.cwd());
+  const tsConfigDirectories = (
+    options.distDir === undefined
+    || options.sourceDir === undefined
+  )
+    ? readTsConfigDirectories(projectDir)
+    : undefined;
+  const distDir = options.distDir ?? tsConfigDirectories?.distDir;
+  const sourceDir = options.sourceDir ?? tsConfigDirectories?.sourceDir;
+
+  if (distDir === undefined || sourceDir === undefined) {
+    throw new Error('Unable to resolve sourceDir and distDir');
+  }
+
+  const resolvedOptions: ResolvedSuiteRunnerOptions = {
+    projectDir,
+    distDir: path.resolve(
+      projectDir,
+      distDir
+    ),
+    sourceDir: path.resolve(
+      projectDir,
+      sourceDir
+    ),
+    runnerFile: options.runnerFile ?? __filename
+  };
+
+  if (options.log !== undefined) {
+    resolvedOptions.log = options.log;
+  }
+
+  return resolvedOptions;
+}
+
 /**
  * Удаляет compiled tests, для которых больше нет исходных TS-файлов.
  *
@@ -265,10 +387,13 @@ export function removeCompiledTestsWithoutSource(
  * выставляется через process.exitCode.
  */
 export function runSuite(options: SuiteRunnerOptions = {}): void {
-  const distDir = options.distDir ?? path.resolve(__dirname);
-  const projectDir = options.projectDir ?? path.resolve(distDir, '..');
-  const sourceDir = options.sourceDir ?? path.join(projectDir, 'src');
-  const runnerFile = options.runnerFile ?? __filename;
+  const {
+    distDir,
+    sourceDir,
+    projectDir,
+    runnerFile,
+    log
+  } = resolveSuiteOptions(options);
 
   const cleanupOptions: CompiledTestCleanupOptions = {
     distDir,
@@ -276,9 +401,12 @@ export function runSuite(options: SuiteRunnerOptions = {}): void {
     projectDir
   };
 
-  if (options.log !== undefined) {
-    cleanupOptions.log = options.log;
+  if (log !== undefined) {
+    cleanupOptions.log = log;
   }
+
+  assertDirectory(distDir, 'distDir', projectDir);
+  assertDirectory(sourceDir, 'sourceDir', projectDir);
 
   const testFiles = removeCompiledTestsWithoutSource(
     collectTestFiles(distDir, '.test.js')
