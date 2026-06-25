@@ -6,73 +6,73 @@ import { spec } from 'node:test/reporters';
 import * as ts from 'typescript';
 
 /**
- * Поддерживаемые расширения тестовых файлов.
+ * Supported test file extensions.
  *
- * `.test.ts` представляет исходный тест в src, а `.test.js` —
- * скомпилированный тестовый файл, который запускается из dist.
+ * `.test.ts` represents the source test in src, while `.test.js`
+ * is the compiled test file that runs from dist.
  */
 type TestExtension = '.test.js' | '.test.ts';
 
 /**
- * Функция вывода диагностических сообщений.
+ * Diagnostic message output function.
  *
- * Передается как зависимость, чтобы тесты могли перехватывать сообщения
- * без подмены console.warn.
+ * Passed as a dependency so tests can capture messages
+ * without replacing console.warn.
  */
 type Log = (message: string) => void;
 
 /**
- * Настройки проверки compiled tests перед запуском test runner-а.
+ * Options for checking compiled tests before running the test runner.
  *
- * Проверка связывает dist/*.test.js с соответствующими src/*.test.ts и
- * защищает от запуска устаревших compiled-файлов.
+ * The check links dist/*.test.js to the corresponding src/*.test.ts files
+ * and protects against running stale compiled files.
  */
 type CompiledTestCleanupOptions = {
   /**
-   * Директория со скомпилированными JS-файлами.
+   * Directory with compiled JS files.
    *
-   * Обычно соответствует dist. Все найденные compiled tests интерпретируются
-   * относительно этой директории.
+   * Usually matches dist. All discovered compiled tests are interpreted
+   * relative to this directory.
    */
   distDir: string;
 
   /**
-   * Директория с исходными TS-файлами.
+   * Directory with source TS files.
    *
-   * Обычно соответствует src. По ней runner восстанавливает ожидаемый путь
-   * к source test для каждого compiled test.
+   * Usually matches src. The runner uses it to restore the expected path
+   * to the source test for each compiled test.
    */
   sourceDir: string;
 
   /**
-   * Корень проекта для человекочитаемой диагностики.
+   * Project root for human-readable diagnostics.
    *
-   * Используется только для форматирования путей в сообщениях об удаленных
-   * или устаревших тестах.
+   * Used only to format paths in messages about removed
+   * or outdated tests.
    */
   projectDir: string;
 
   /**
-   * Опциональный вывод диагностических сообщений.
+   * Optional diagnostic message output.
    *
-   * Свойство должно отсутствовать, если кастомный logger не передан.
-   * Это важно для проектов с `exactOptionalPropertyTypes: true`.
+   * The property must be absent when no custom logger is passed.
+   * This matters for projects with `exactOptionalPropertyTypes: true`.
    */
   log?: Log;
 };
 
 /**
- * Настройки запуска test suite.
+ * Test suite run options.
  *
- * Большая часть параметров опциональна, потому что runner умеет восстановить
- * стандартную структуру проекта из расположения текущего compiled-файла.
+ * Most parameters are optional because the runner can restore
+ * the standard project structure from the location of the current compiled file.
  */
 type SuiteRunnerOptions = Partial<CompiledTestCleanupOptions> & {
   /**
-   * Путь к файлу runner-а.
+   * Path to the runner file.
    *
-   * Используется, чтобы исключить сам runner из списка запускаемых тестов,
-   * если он тоже находится внутри dist.
+   * Used to exclude the runner itself from the list of runnable tests
+   * when it is also located inside dist.
    */
   runnerFile?: string;
 };
@@ -87,28 +87,28 @@ type TsConfigDirectories = {
 };
 
 /**
- * Описание compiled test, который старше своего исходного TS-файла.
+ * Description of a compiled test that is older than its source TS file.
  *
- * Оба пути хранятся в project-relative формате, чтобы сообщение об ошибке
- * было одинаковым в локальной среде, контейнере и CI.
+ * Both paths are stored in project-relative format so the error message
+ * is identical in local environments, containers, and CI.
  */
 type OutdatedCompiledTest = {
   /**
-   * Путь к устаревшему compiled JS-тесту относительно корня проекта.
+   * Path to the outdated compiled JS test relative to the project root.
    */
   compiled: string;
 
   /**
-   * Путь к исходному TS-тесту относительно корня проекта.
+   * Path to the source TS test relative to the project root.
    */
   source: string;
 };
 
 /**
- * Рекурсивно собирает тестовые файлы с указанным расширением.
+ * Recursively collects test files with the specified extension.
  *
- * Порядок обхода стабилизирован сортировкой, чтобы запуск тестов не зависел
- * от порядка, в котором файловая система возвращает содержимое директорий.
+ * Traversal order is stabilized by sorting so test execution does not depend
+ * on the order in which the filesystem returns directory contents.
  */
 export function collectTestFiles(dir: string, extension: TestExtension): string[] {
   const files: string[] = [];
@@ -134,10 +134,10 @@ export function collectTestFiles(dir: string, extension: TestExtension): string[
 }
 
 /**
- * Преобразует абсолютный путь в путь относительно корня проекта.
+ * Converts an absolute path to a path relative to the project root.
  *
- * Такой формат используется в диагностике, чтобы сообщения были стабильными
- * между локальной машиной, контейнером и CI.
+ * This format is used in diagnostics so messages stay stable
+ * between a local machine, container, and CI.
  */
 function toProjectPath(file: string, projectDir: string): string {
   return path
@@ -147,11 +147,11 @@ function toProjectPath(file: string, projectDir: string): string {
 }
 
 /**
- * Восстанавливает ожидаемый путь к исходному test-файлу по compiled JS-файлу.
+ * Restores the expected source test file path from a compiled JS file.
  *
- * Runner запускает тесты из dist, но источник истины находится в src.
- * Это позволяет обнаружить удаленные или измененные TS-тесты, после которых
- * в dist остались старые JS-файлы.
+ * The runner executes tests from dist, but the source of truth is in src.
+ * This allows detection of deleted or changed TS tests after which
+ * old JS files remain in dist.
  */
 function toSourceTestPath(
   compiledFile: string,
@@ -165,11 +165,11 @@ function toSourceTestPath(
 }
 
 /**
- * Читает stat только для обычного файла.
+ * Reads stat only for a regular file.
  *
- * Отсутствующий файл считается нормальным результатом, потому что cleanup
- * как раз проверяет ситуацию, когда source test уже удален, а compiled test
- * еще остался в dist.
+ * A missing file is considered a normal result because cleanup
+ * specifically checks the case where a source test has already been deleted
+ * while the compiled test still remains in dist.
  */
 function readOptionalFileStat(file: string): fs.Stats | undefined {
   try {
@@ -311,11 +311,11 @@ export function resolveSuiteOptions(
 }
 
 /**
- * Удаляет compiled tests, для которых больше нет исходных TS-файлов.
+ * Removes compiled tests for which source TS files no longer exist.
  *
- * Дополнительно проверяет, что существующий compiled test не старше source test.
- * Это защищает от ложноположительного запуска старого dist/*.test.js после
- * изменения или удаления соответствующего src/*.test.ts.
+ * Additionally checks that an existing compiled test is not older than its source test.
+ * This protects against a false-positive run of old dist/*.test.js after
+ * the corresponding src/*.test.ts was changed or deleted.
  */
 export function removeCompiledTestsWithoutSource(
   testFiles: string[],
@@ -380,11 +380,11 @@ export function removeCompiledTestsWithoutSource(
 }
 
 /**
- * Запускает compiled JS-тесты из dist через нативный Node.js test runner.
+ * Runs compiled JS tests from dist through the native Node.js test runner.
  *
- * Функция намеренно не вызывает process.exit(), чтобы ее можно было безопасно
- * использовать из тестов или других bootstrap-сценариев. Статус процесса
- * выставляется через process.exitCode.
+ * The function intentionally does not call process.exit() so it can be safely
+ * used from tests or other bootstrap scenarios. Process status is set
+ * through process.exitCode.
  */
 export function runSuite(options: SuiteRunnerOptions = {}): void {
   const {
@@ -445,7 +445,7 @@ export function runSuite(options: SuiteRunnerOptions = {}): void {
 }
 
 /**
- * Проверяет, что файл запущен напрямую, а не импортирован как модуль.
+ * Checks that the file was run directly, not imported as a module.
  */
 function isMainFile(file: string): boolean {
   return (

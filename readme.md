@@ -11,19 +11,19 @@ The runner solves two practical problems:
 
 In a TypeScript project, tests are written in `src`:
 
-```text
+```
 src/feature/sample.test.ts
 ```
 
 After build, a compiled file appears:
 
-```text
+```
 dist/feature/sample.test.js
 ```
 
 If tests are run directly through a glob:
 
-```bash
+```sh
 node --test dist/**/*.test.js
 ```
 
@@ -33,13 +33,13 @@ In npm scripts, a command usually goes through a shell. Not every shell handles 
 
 For example, these files may be found:
 
-```text
+```
 dist/feature/sample.test.js
 ```
 
 but these files may be missed:
 
-```text
+```
 dist/feature/nested/sample.test.js
 dist/feature/nested/deep/sample.test.js
 ```
@@ -64,7 +64,7 @@ It uses `node:test` internally, but takes responsibility for preparing the file 
 
 Regular execution:
 
-```bash
+```sh
 node --test dist/**/*.test.js
 ```
 
@@ -72,7 +72,7 @@ relies on glob pattern handling outside Node.js or inside Node.js. In practice, 
 
 Execution through the suite:
 
-```bash
+```sh
 node dist/suite.js
 ```
 
@@ -82,7 +82,7 @@ The runner performs its own recursive walk of `dist`, excludes the suite runner 
 
 In other words:
 
-```text
+```
 node:test is responsible for executing tests.
 suite.js is responsible for safely selecting test files from dist.
 ```
@@ -100,7 +100,7 @@ Before running tests, the runner performs a preflight check:
 
 ## Example Project Structure
 
-```text
+```
 project/
 |-- src/
 |   |-- suite.ts
@@ -122,13 +122,13 @@ project/
 
 After installing the package, the standard run command is:
 
-```bash
+```sh
 fwa
 ```
 
 The `fwa` command runs project tests from the current working directory:
 
-```text
+```
 distDir = <cwd>/dist
 sourceDir = <cwd>/src
 projectDir = <cwd>
@@ -136,7 +136,7 @@ projectDir = <cwd>
 
 Direct execution of the compiled entrypoint inside the project itself is also supported:
 
-```bash
+```sh
 node dist/suite.js
 ```
 
@@ -159,7 +159,7 @@ It removes only compiled test files for which the corresponding source test file
 
 A command like:
 
-```bash
+```sh
 node --test dist/**/*.test.js
 ```
 
@@ -171,7 +171,7 @@ Second, behavior may differ between environments. A local machine, CI, Docker co
 
 The runner avoids this ambiguity:
 
-```text
+```
 dist is walked through fs.readdirSync()
 the test file list is formed explicitly
 node:test receives already prepared file paths
@@ -185,7 +185,7 @@ The runner assumes that `src` and `dist` have the same relative structure.
 
 For example:
 
-```text
+```
 src/feature/sample.test.ts
 dist/feature/sample.test.js
 ```
@@ -196,7 +196,7 @@ For each discovered compiled test, the runner checks the corresponding source te
 
 If the source test exists and the compiled test is not older than it, the file is considered runnable:
 
-```text
+```
 src/feature/sample.test.ts
 dist/feature/sample.test.js
 ```
@@ -205,13 +205,13 @@ dist/feature/sample.test.js
 
 If the source test no longer exists, the compiled test is considered a stale file and is removed:
 
-```text
+```
 dist/feature/old.test.js
 ```
 
 Diagnostic:
 
-```text
+```
 Removed stale compiled tests without source:
 - dist/feature/old.test.js
 ```
@@ -220,7 +220,7 @@ Removed stale compiled tests without source:
 
 If the source test was changed after the compiled test, execution aborts with an error:
 
-```text
+```
 Compiled tests are older than source tests.
 
 Rebuild before npm test:
@@ -244,7 +244,7 @@ The function is used for explicit directory traversal without shell glob.
 Supported extensions:
 
 ```ts
-type TestExtension = '.test.js' | '.test.ts';
+type Tesension = '.test.js' | '.test.ts';
 ```
 
 ### `removeCompiledTestsWithoutSource(testFiles, options)`
@@ -314,7 +314,7 @@ Project root.
 
 Used to format paths in diagnostics:
 
-```text
+```
 dist/feature/sample.test.js
 src/feature/sample.test.ts
 ```
@@ -363,7 +363,7 @@ The runner is designed for a standard TypeScript build where the relative struct
 
 Supported case:
 
-```text
+```
 src/a/b/example.test.ts
 dist/a/b/example.test.js
 ```
@@ -420,7 +420,7 @@ This keeps each test independent and avoids dependence on shared mutable setup.
 
 It is a small entrypoint on top of native `node:test` that makes running compiled TypeScript tests more reliable:
 
-```text
+```
 without shell glob
 with recursive dist traversal
 with protection from stale compiled tests
