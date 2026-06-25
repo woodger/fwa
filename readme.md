@@ -49,7 +49,7 @@ dist/feature/nested/deep/sample.test.js
 ```json
 {
   "scripts": {
-    "test": "node dist/suite.js"
+    "test": "fwa"
   }
 }
 ```
@@ -120,7 +120,21 @@ project/
 
 ## Использование
 
-Стандартный запуск:
+После установки пакета стандартный запуск:
+
+```bash
+fwa
+```
+
+Команда `fwa` запускает тесты проекта из текущей рабочей директории:
+
+```text
+distDir = <cwd>/dist
+sourceDir = <cwd>/src
+projectDir = <cwd>
+```
+
+Прямой запуск compiled entrypoint-а внутри самого проекта также поддерживается:
 
 ```bash
 node dist/suite.js
@@ -132,7 +146,7 @@ node dist/suite.js
 {
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node dist/suite.js"
+    "test": "npm run build && fwa"
   }
 }
 ```
