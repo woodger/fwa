@@ -2,7 +2,6 @@ import type { SuiteRunnerOptions } from '../application/run-suite';
 
 type RunCliOptions = {
   args: readonly string[];
-  projectDir: string;
   runnerFile: string;
 };
 
@@ -16,7 +15,7 @@ type RunCliDependencies = {
 
 function renderHelp(): string {
   return [
-    'Usage: fwa [options]',
+    'Usage: fwa <project-root>',
     '',
     'Options:',
     '  -h, --help     Show help.',
@@ -30,41 +29,63 @@ export function runCli(
   dependencies: RunCliDependencies
 ): void {
   if (options.args.length === 0) {
-    dependencies.runSuite({
-      projectDir: options.projectDir,
-      runnerFile: options.runnerFile
-    });
-    return;
-  }
-
-  if (options.args.length > 1) {
-    dependencies.writeStderr(`Unexpected arguments: ${options.args.join(' ')}\n`);
+    dependencies.writeStderr('Missing project root.\n');
     dependencies.setExitCode(1);
     return;
   }
 
-  const arg = options.args[0];
+  if (options.args.length === 1) {
+    const arg = options.args[0];
 
-  if (arg === undefined) {
-    dependencies.runSuite({
-      projectDir: options.projectDir,
-      runnerFile: options.runnerFile
-    });
+    if (arg === '--help' || arg === '-h') {
+      dependencies.writeStdout(renderHelp());
+      dependencies.setExitCode(0);
+      return;
+    }
+
+    if (arg === '--version' || arg === '-v') {
+      dependencies.writeStdout(`${dependencies.readVersion()}\n`);
+      dependencies.setExitCode(0);
+      return;
+    }
+  }
+
+  if (options.args.includes('--help') || options.args.includes('-h')) {
+    dependencies.writeStderr('Help option cannot be combined with other arguments.\n');
+    dependencies.setExitCode(1);
     return;
   }
 
-  if (arg === '--help' || arg === '-h') {
-    dependencies.writeStdout(renderHelp());
-    dependencies.setExitCode(0);
+  if (options.args.includes('--version') || options.args.includes('-v')) {
+    dependencies.writeStderr('Version option cannot be combined with other arguments.\n');
+    dependencies.setExitCode(1);
     return;
   }
 
-  if (arg === '--version' || arg === '-v') {
-    dependencies.writeStdout(`${dependencies.readVersion()}\n`);
-    dependencies.setExitCode(0);
+  const unknownOption = options.args.find((arg) => arg.startsWith('-'));
+
+  if (unknownOption !== undefined) {
+    dependencies.writeStderr(`Unknown option: ${unknownOption}\n`);
+    dependencies.setExitCode(1);
     return;
   }
 
-  dependencies.writeStderr(`Unknown option: ${arg}\n`);
-  dependencies.setExitCode(1);
+  if (options.args.length > 1) {
+    dependencies.writeStderr(`Unexpected arguments: ${options.args.slice(1).join(' ')}\n`);
+    dependencies.setExitCode(1);
+    return;
+  }
+
+  const [projectDir] = options.args;
+
+  if (projectDir === undefined) {
+    dependencies.writeStderr('Missing project root.\n');
+    dependencies.setExitCode(1);
+    return;
+  }
+
+  dependencies.runSuite({
+    projectDir,
+    runnerFile: options.runnerFile
+  });
 }

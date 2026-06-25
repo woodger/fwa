@@ -4,13 +4,6 @@ import type { TestExtension } from '../config.types';
 export type { TestExtension } from '../config.types';
 
 /**
- * Supported test file extensions.
- *
- * `.test.ts` and `.spec.ts` represent source tests in src, while
- * `.test.js` and `.spec.js` are compiled test files that run from dist.
- */
-
-/**
  * Diagnostic message output function.
  *
  * Passed as a dependency so tests can capture messages
@@ -61,10 +54,15 @@ export type CompiledTestCleanupOptions = {
 /**
  * Test suite run options.
  *
- * Most parameters are optional because the runner can restore
- * the standard project structure from the current project's tsconfig.
+ * Source and output directories are intentionally not configurable here.
+ * They are resolved from the target project's tsconfig.
  */
-export type SuiteRunnerOptions = Partial<CompiledTestCleanupOptions> & {
+export type SuiteRunnerOptions = {
+  /**
+   * Project root used to find tsconfig.json.
+   */
+  projectDir: string;
+
   /**
    * Path to the runner file.
    *
@@ -72,6 +70,11 @@ export type SuiteRunnerOptions = Partial<CompiledTestCleanupOptions> & {
    * when it is also located inside dist.
    */
   runnerFile?: string;
+
+  /**
+   * Optional diagnostic message output.
+   */
+  log?: Log;
 };
 
 export type ResolvedSuiteRunnerOptions = CompiledTestCleanupOptions & {

@@ -20,14 +20,9 @@
   "bin": {
     "fwa": "./dist/bootstrap/cli.js"
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "build": "tsc",
-    "test": "node dist/bootstrap/cli.js",
+    "test": "node dist/bootstrap/cli.js .",
     "lint": "eslint src eslint.config.mjs"
   },
   "engines": {

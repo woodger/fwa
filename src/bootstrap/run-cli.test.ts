@@ -11,7 +11,6 @@ describe('runCli', () => {
 
     runCli({
       args: ['--help'],
-      projectDir: '/project',
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => {
@@ -35,7 +34,7 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa [options]',
+        'Usage: fwa <project-root>',
         '',
         'Options:',
         '  -h, --help     Show help.',
@@ -52,7 +51,6 @@ describe('runCli', () => {
 
     runCli({
       args: ['-h'],
-      projectDir: '/project',
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => {
@@ -76,7 +74,7 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa [options]',
+        'Usage: fwa <project-root>',
         '',
         'Options:',
         '  -h, --help     Show help.',
@@ -93,7 +91,6 @@ describe('runCli', () => {
 
     runCli({
       args: ['--version'],
-      projectDir: '/project',
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => '2.0.0-alpha',
@@ -123,7 +120,6 @@ describe('runCli', () => {
 
     runCli({
       args: ['-v'],
-      projectDir: '/project',
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => '2.0.0-alpha',
@@ -146,13 +142,12 @@ describe('runCli', () => {
     assert.deepStrictEqual(stdout, ['2.0.0-alpha\n']);
   });
 
-  test('runs suite without args', () => {
+  test('runs suite with project root', () => {
     let runnerProjectDir: string | undefined;
     let runnerFile: string | undefined;
 
     runCli({
-      args: [],
-      projectDir: '/project',
+      args: ['/workspace/project'],
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => {
@@ -173,18 +168,17 @@ describe('runCli', () => {
       }
     });
 
-    assert.strictEqual(runnerProjectDir, '/project');
+    assert.strictEqual(runnerProjectDir, '/workspace/project');
     assert.strictEqual(runnerFile, '/project/dist/bootstrap/cli.js');
   });
 
-  test('rejects unknown option', () => {
+  test('rejects missing project root', () => {
     const stderr: string[] = [];
     let exitCode: number | undefined;
     let suiteWasRun = false;
 
     runCli({
-      args: ['--wat'],
-      projectDir: '/project',
+      args: [],
       runnerFile: '/project/dist/bootstrap/cli.js'
     }, {
       readVersion: () => {
@@ -206,6 +200,71 @@ describe('runCli', () => {
 
     assert.strictEqual(suiteWasRun, false);
     assert.strictEqual(exitCode, 1);
-    assert.deepStrictEqual(stderr, ['Unknown option: --wat\n']);
+    assert.deepStrictEqual(stderr, ['Missing project root.\n']);
+  });
+
+  test('rejects source directory option', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: ['--source-dir'],
+      runnerFile: '/project/dist/bootstrap/cli.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Unknown option: --source-dir\n']);
+  });
+
+  test('rejects extra project root', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '/workspace/one',
+        '/workspace/two'
+      ],
+      runnerFile: '/project/dist/bootstrap/cli.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Unexpected arguments: /workspace/two\n']);
   });
 });

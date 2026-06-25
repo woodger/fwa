@@ -7,17 +7,30 @@ import { describe, test } from 'node:test';
 import { resolveSuiteOptions } from './run-suite';
 
 describe('resolveSuiteOptions', () => {
-  test('uses explicit sourceDir and distDir without tsconfig', (t) => {
+  test('resolves sourceDir and distDir from tsconfig', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
     const options = resolveSuiteOptions({
       projectDir,
-      sourceDir: 'source',
-      distDir: 'build',
       runnerFile: 'runner.js'
     });
 
