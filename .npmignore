@@ -1,9 +1,1 @@
-node_modules
-package-lock.json
-appveyor.yml
-coverage
-test
-.git
-.gitignore
-.nyc_output
-.travis.yml
+AGENTS.md
