@@ -2,36 +2,43 @@
   "name": "fwa",
   "version": "2.0.0-alpha",
   "description": "Compiled Suite Runner",
-  "scripts": {
-    "build": "tsc",
-    "test": "node dist/bootstrap/cli.js",
-    "lint": "eslint src eslint.config.mjs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/woodger/fwa"
-  },
+  "keywords": [
+    "test",
+    "suite"
+  ],
+  "license": "MIT",
   "author": {
     "name": "Stanislav Potemkin",
     "email": "woodger@ya.ru"
   },
-  "license": "MIT",
-  "engines": {
-    "node": ">=20.19.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/woodger/fwa.git"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
     "fwa": "./dist/bootstrap/cli.js"
   },
-  "dependencies": {
-    "typescript": "^6.0.3"
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/bootstrap/cli.js",
+    "lint": "eslint src eslint.config.mjs"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.1",
     "eslint": "^10.5.0",
     "globals": "^17.7.0",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0"
   }
 }
