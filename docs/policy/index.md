@@ -2,7 +2,7 @@
 
 > Type: Navigation. This document provides navigation for the policy section and defines the general purpose of the project change constraints.
 
-This section contains portable rules for changing small Node.js/TypeScript codebases.
+This section contains project rules for changing Node.js/TypeScript codebases.
 
 The policy set is intended to preserve:
 
@@ -31,6 +31,7 @@ These policies are mandatory for developers, reviewers, and agents making change
 
 - [Decision Rule](./decision-rule-policy.md)
 - [Change Policy](./change-policy.md)
+- [Architecture Policy](./architecture-policy.md)
 - [Non-Functional Requirements](./non-functional-requirements.md)
 - [Abstraction Policy](./abstraction-policy.md)
 - [Naming Policy](./naming-policy.md)
