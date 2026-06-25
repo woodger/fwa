@@ -1,21 +1,14 @@
+import { defaultRunnerConfig } from '../config';
+import type { TestExtension } from '../config.types';
+
+export type { TestExtension } from '../config.types';
+
 /**
  * Supported test file extensions.
  *
  * `.test.ts` and `.spec.ts` represent source tests in src, while
  * `.test.js` and `.spec.js` are compiled test files that run from dist.
  */
-export type TestExtension = '.test.js' | '.test.ts' | '.spec.js' | '.spec.ts';
-
-/**
- * Runtime execution uses compiled JavaScript tests only.
- *
- * Source TypeScript extensions stay in `TestExtension` because `collectTestFiles`
- * is public and can also be used for source-side checks.
- */
-export const compiledTestExtensions = [
-  '.test.js',
-  '.spec.js'
-] as const satisfies readonly TestExtension[];
 
 /**
  * Diagnostic message output function.
@@ -124,7 +117,10 @@ export function runSuiteUseCase(
 
   const testFiles = dependencies.removeCompiledTestsWithoutSource(
     dependencies
-      .collectTestFiles(options.distDir, compiledTestExtensions)
+      .collectTestFiles(
+        options.distDir,
+        defaultRunnerConfig.testFileExtensions.map(({ compiled }) => compiled)
+      )
       .filter((file) => (
         dependencies.resolvePath(file) !== dependencies.resolvePath(options.runnerFile)
       )),

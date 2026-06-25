@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type {
-  CompiledTestCleanupOptions,
-  TestExtension
+  CompiledTestCleanupOptions
 } from '../application/run-suite';
+import { defaultRunnerConfig } from '../config';
+import type { TestExtension } from '../config.types';
 import { toProjectPath } from './project-path';
 
 /**
@@ -91,7 +92,12 @@ function toSourceTestPath(
   sourceDir: string
 ): string {
   const relativeCompiledPath = path.relative(distDir, compiledFile);
-  const relativeSourcePath = relativeCompiledPath.replace(/\.js$/, '.ts');
+  const extensionPair = defaultRunnerConfig.testFileExtensions.find(({ compiled }) => (
+    relativeCompiledPath.endsWith(compiled)
+  ));
+  const relativeSourcePath = extensionPair === undefined
+    ? relativeCompiledPath.replace(/\.js$/, '.ts')
+    : `${relativeCompiledPath.slice(0, -extensionPair.compiled.length)}${extensionPair.source}`;
 
   return path.join(sourceDir, relativeSourcePath);
 }

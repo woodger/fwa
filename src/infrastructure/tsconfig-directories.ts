@@ -2,6 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 import * as ts from 'typescript';
 
+import { defaultRunnerConfig } from '../config';
 import { toProjectPath } from './project-path';
 
 export type TsConfigDirectories = {
@@ -28,11 +29,11 @@ export function readTsConfigDirectories(projectDir: string): TsConfigDirectories
   const configFile = ts.findConfigFile(
     projectDir,
     (file) => ts.sys.fileExists(file),
-    'tsconfig.json'
+    defaultRunnerConfig.tsConfigFileName
   );
 
   if (configFile === undefined) {
-    throw new Error(`Cannot find tsconfig.json from ${projectDir}`);
+    throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
   }
 
   const configResult = ts.readConfigFile(

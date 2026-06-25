@@ -2,6 +2,8 @@ import process from 'node:process';
 import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 
+import { defaultRunnerConfig } from '../config';
+
 /**
  * Runs compiled JS tests through the native Node.js test runner.
  *
@@ -12,8 +14,8 @@ import { spec } from 'node:test/reporters';
 export function runNodeTestFiles(testFiles: string[]): void {
   const testStream = run({
     files: testFiles,
-    concurrency: true,
-    isolation: 'process'
+    concurrency: defaultRunnerConfig.nodeTest.concurrency,
+    isolation: defaultRunnerConfig.nodeTest.isolation
   });
 
   testStream.on('test:fail', () => {
