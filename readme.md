@@ -1,50 +1,50 @@
 # Compiled Suite Runner
 
-Модуль запускает скомпилированные TypeScript-тесты из `dist` через нативный Node.js test runner.
+The module runs compiled TypeScript tests from `dist` through the native Node.js test runner.
 
-Runner решает две практические проблемы:
+The runner solves two practical problems:
 
-1. Надежно находит вложенные `*.test.js` файлы в `dist` без зависимости от shell glob.
-2. Защищает проект от запуска устаревших compiled tests, которые остались после удаления или изменения исходных `*.test.ts`.
+1. Reliably finds nested `*.test.js` files in `dist` without depending on shell glob behavior.
+2. Protects the project from running stale compiled tests that remain after source `*.test.ts` files were deleted or changed.
 
-## Назначение
+## Purpose
 
-В TypeScript-проекте тесты пишутся в `src`:
+In a TypeScript project, tests are written in `src`:
 
 ```text
 src/feature/sample.test.ts
 ```
 
-После сборки появляется compiled-файл:
+After build, a compiled file appears:
 
 ```text
 dist/feature/sample.test.js
 ```
 
-Если запускать тесты напрямую через glob:
+If tests are run directly through a glob:
 
 ```bash
 node --test dist/**/*.test.js
 ```
 
-результат может зависеть от shell, через который выполняется команда.
+the result may depend on the shell that executes the command.
 
-В npm scripts команда обычно проходит через shell. Не каждый shell одинаково обрабатывает `**`, и в некоторых случаях `dist/**/*.test.js` может найти только тесты на одном уровне вложенности, пропустив более глубокие файлы.
+In npm scripts, a command usually goes through a shell. Not every shell handles `**` in the same way, and in some cases `dist/**/*.test.js` may find only tests at one nesting level while missing deeper files.
 
-Например, могут быть найдены:
+For example, these files may be found:
 
 ```text
 dist/feature/sample.test.js
 ```
 
-но пропущены:
+but these files may be missed:
 
 ```text
 dist/feature/nested/sample.test.js
 dist/feature/nested/deep/sample.test.js
 ```
 
-Поэтому проект использует отдельный suite entrypoint:
+For this reason, the project uses a separate suite entrypoint:
 
 ```json
 {
@@ -54,79 +54,79 @@ dist/feature/nested/deep/sample.test.js
 }
 ```
 
-`suite.js` сам рекурсивно обходит `dist`, собирает все `*.test.js` файлы на любой глубине и передает готовый список файлов в нативный `node:test`.
+`suite.js` recursively walks `dist` itself, collects all `*.test.js` files at any depth, and passes the final file list to native `node:test`.
 
-## Отличие от `node --test`
+## Difference From `node --test`
 
-Этот runner не заменяет нативный Node.js test runner.
+This runner does not replace the native Node.js test runner.
 
-Он использует `node:test` внутри, но берет на себя подготовку списка файлов перед запуском.
+It uses `node:test` internally, but takes responsibility for preparing the file list before execution.
 
-Обычный запуск:
+Regular execution:
 
 ```bash
 node --test dist/**/*.test.js
 ```
 
-полагается на обработку glob-паттерна снаружи или внутри Node.js. На практике это может быть неочевидно и зависеть от окружения, shell и формы команды.
+relies on glob pattern handling outside Node.js or inside Node.js. In practice, this can be non-obvious and can depend on the environment, shell, and command form.
 
-Запуск через suite:
+Execution through the suite:
 
 ```bash
 node dist/suite.js
 ```
 
-не зависит от shell glob.
+does not depend on shell glob behavior.
 
-Runner выполняет собственный рекурсивный обход `dist`, исключает сам файл suite runner-а из списка тестов, проверяет актуальность compiled-файлов и только после этого запускает тесты через `node:test`.
+The runner performs its own recursive walk of `dist`, excludes the suite runner file itself from the test list, checks freshness of compiled files, and only then runs tests through `node:test`.
 
-Иными словами:
+In other words:
 
 ```text
-node:test отвечает за выполнение тестов.
-suite.js отвечает за безопасный выбор test-файлов из dist.
+node:test is responsible for executing tests.
+suite.js is responsible for safely selecting test files from dist.
 ```
 
-## Что делает runner
+## What The Runner Does
 
-Перед запуском тестов runner выполняет preflight-проверку:
+Before running tests, the runner performs a preflight check:
 
-1. Рекурсивно находит все `*.test.js` файлы в `dist`.
-2. Исключает из списка сам runner-файл.
-3. Для каждого `dist/**/*.test.js` восстанавливает ожидаемый путь к `src/**/*.test.ts`.
-4. Удаляет compiled test, если соответствующий source test больше не существует.
-5. Прерывает запуск, если source test новее compiled test.
-6. Передает оставшиеся файлы в нативный `node:test`.
+1. Recursively finds all `*.test.js` files in `dist`.
+2. Excludes the runner file itself from the list.
+3. Restores the expected path to `src/**/*.test.ts` for each `dist/**/*.test.js`.
+4. Removes a compiled test if the corresponding source test no longer exists.
+5. Aborts execution if the source test is newer than the compiled test.
+6. Passes the remaining files to native `node:test`.
 
-## Пример структуры проекта
+## Example Project Structure
 
 ```text
 project/
-├── src/
-│   ├── suite.ts
-│   └── feature/
-│       ├── sample.test.ts
-│       └── nested/
-│           └── deep.test.ts
-├── dist/
-│   ├── suite.js
-│   └── feature/
-│       ├── sample.test.js
-│       └── nested/
-│           └── deep.test.js
-├── package.json
-└── tsconfig.json
+|-- src/
+|   |-- suite.ts
+|   `-- feature/
+|       |-- sample.test.ts
+|       `-- nested/
+|           `-- deep.test.ts
+|-- dist/
+|   |-- suite.js
+|   `-- feature/
+|       |-- sample.test.js
+|       `-- nested/
+|           `-- deep.test.js
+|-- package.json
+`-- tsconfig.json
 ```
 
-## Использование
+## Usage
 
-После установки пакета стандартный запуск:
+After installing the package, the standard run command is:
 
 ```bash
 fwa
 ```
 
-Команда `fwa` запускает тесты проекта из текущей рабочей директории:
+The `fwa` command runs project tests from the current working directory:
 
 ```text
 distDir = <cwd>/dist
@@ -134,13 +134,13 @@ sourceDir = <cwd>/src
 projectDir = <cwd>
 ```
 
-Прямой запуск compiled entrypoint-а внутри самого проекта также поддерживается:
+Direct execution of the compiled entrypoint inside the project itself is also supported:
 
 ```bash
 node dist/suite.js
 ```
 
-Рекомендуемый script в `package.json`:
+Recommended script in `package.json`:
 
 ```json
 {
@@ -151,74 +151,74 @@ node dist/suite.js
 }
 ```
 
-Runner не требует полного удаления `dist` перед запуском тестов.
+The runner does not require full deletion of `dist` before running tests.
 
-Он удаляет только те compiled test-файлы, для которых больше нет соответствующих source test-файлов.
+It removes only compiled test files for which the corresponding source test file no longer exists.
 
-## Почему не `dist/**/*.test.js`
+## Why Not `dist/**/*.test.js`
 
-Команда вида:
+A command like:
 
 ```bash
 node --test dist/**/*.test.js
 ```
 
-выглядит короче, но у нее есть два недостатка.
+looks shorter, but it has two drawbacks.
 
-Во-первых, `**` может быть обработан shell до запуска Node.js. В этом случае Node.js получает уже готовый список файлов, а не исходный glob-паттерн.
+First, `**` may be processed by the shell before Node.js starts. In that case, Node.js receives an already prepared file list, not the original glob pattern.
 
-Во-вторых, поведение может отличаться между окружениями. Локальная машина, CI, Docker-контейнер и разные shell могут обрабатывать такой glob по-разному.
+Second, behavior may differ between environments. A local machine, CI, Docker container, and different shells may handle this glob differently.
 
-Runner избегает этой неоднозначности:
-
-```text
-dist обходится через fs.readdirSync()
-список test-файлов формируется явно
-node:test получает уже готовые пути к файлам
-```
-
-Это делает запуск тестов стабильным и предсказуемым.
-
-## Защита от stale compiled tests
-
-Runner предполагает, что `src` и `dist` имеют одинаковую относительную структуру.
-
-Например:
+The runner avoids this ambiguity:
 
 ```text
-src/feature/sample.test.ts
-dist/feature/sample.test.js
+dist is walked through fs.readdirSync()
+the test file list is formed explicitly
+node:test receives already prepared file paths
 ```
 
-Для каждого найденного compiled test runner проверяет соответствующий source test.
+This makes test execution stable and predictable.
 
-### Source test существует
+## Protection From Stale Compiled Tests
 
-Если source test существует и compiled test не старше него, файл считается пригодным для запуска:
+The runner assumes that `src` and `dist` have the same relative structure.
+
+For example:
 
 ```text
 src/feature/sample.test.ts
 dist/feature/sample.test.js
 ```
 
-### Source test удален
+For each discovered compiled test, the runner checks the corresponding source test.
 
-Если source test больше не существует, compiled test считается stale-файлом и удаляется:
+### Source Test Exists
+
+If the source test exists and the compiled test is not older than it, the file is considered runnable:
+
+```text
+src/feature/sample.test.ts
+dist/feature/sample.test.js
+```
+
+### Source Test Was Deleted
+
+If the source test no longer exists, the compiled test is considered a stale file and is removed:
 
 ```text
 dist/feature/old.test.js
 ```
 
-Диагностика:
+Diagnostic:
 
 ```text
 Removed stale compiled tests without source:
 - dist/feature/old.test.js
 ```
 
-### Source test новее compiled test
+### Source Test Is Newer Than Compiled Test
 
-Если source test был изменен после compiled test, запуск прерывается ошибкой:
+If the source test was changed after the compiled test, execution aborts with an error:
 
 ```text
 Compiled tests are older than source tests.
@@ -227,21 +227,21 @@ Rebuild before npm test:
 - dist/feature/sample.test.js (source: src/feature/sample.test.ts)
 ```
 
-Это означает, что `dist` не соответствует текущему состоянию `src`, и проект нужно пересобрать.
+This means that `dist` does not match the current state of `src`, and the project must be rebuilt.
 
-## Публичный API
+## Public API
 
 ### `collectTestFiles(dir, extension)`
 
-Рекурсивно собирает test-файлы с указанным расширением.
+Recursively collects test files with the specified extension.
 
 ```ts
 const files = collectTestFiles('dist', '.test.js');
 ```
 
-Функция используется для явного обхода директории без shell glob.
+The function is used for explicit directory traversal without shell glob.
 
-Поддерживаемые расширения:
+Supported extensions:
 
 ```ts
 type TestExtension = '.test.js' | '.test.ts';
@@ -249,7 +249,7 @@ type TestExtension = '.test.js' | '.test.ts';
 
 ### `removeCompiledTestsWithoutSource(testFiles, options)`
 
-Проверяет compiled test-файлы перед запуском.
+Checks compiled test files before execution.
 
 ```ts
 const runnableFiles = removeCompiledTestsWithoutSource(testFiles, {
@@ -259,21 +259,21 @@ const runnableFiles = removeCompiledTestsWithoutSource(testFiles, {
 });
 ```
 
-Функция возвращает только те compiled test-файлы, которые можно запускать.
+The function returns only compiled test files that can be executed.
 
-Если source test отсутствует, compiled test удаляется.
+If the source test is missing, the compiled test is removed.
 
-Если source test новее compiled test, функция выбрасывает ошибку.
+If the source test is newer than the compiled test, the function throws an error.
 
 ### `runSuite(options?)`
 
-Запускает полный цикл проверки и выполнения тестов.
+Runs the full check and test execution cycle.
 
 ```ts
 runSuite();
 ```
 
-С параметрами:
+With parameters:
 
 ```ts
 runSuite({
@@ -284,15 +284,15 @@ runSuite({
 });
 ```
 
-Обычно параметры не нужны, если runner лежит в `src/suite.ts` и после сборки попадает в `dist/suite.js`.
+Usually parameters are not needed if the runner is located in `src/suite.ts` and lands in `dist/suite.js` after build.
 
-## Опции
+## Options
 
 ### `distDir`
 
-Директория со скомпилированными JS-файлами.
+Directory with compiled JS files.
 
-Обычно это директория текущего compiled runner-а:
+Usually this is the directory of the current compiled runner:
 
 ```ts
 const distDir = path.resolve(__dirname);
@@ -300,9 +300,9 @@ const distDir = path.resolve(__dirname);
 
 ### `sourceDir`
 
-Директория с исходными TS-файлами.
+Directory with source TS files.
 
-Обычно:
+Usually:
 
 ```ts
 const sourceDir = path.join(projectDir, 'src');
@@ -310,26 +310,26 @@ const sourceDir = path.join(projectDir, 'src');
 
 ### `projectDir`
 
-Корень проекта.
+Project root.
 
-Используется для форматирования путей в диагностике:
+Used to format paths in diagnostics:
 
 ```text
 dist/feature/sample.test.js
 src/feature/sample.test.ts
 ```
 
-В сообщениях не используются абсолютные пути, чтобы вывод был одинаковым локально, в контейнере и в CI.
+Messages do not use absolute paths so output is identical locally, in a container, and in CI.
 
 ### `runnerFile`
 
-Путь к runner-файлу.
+Path to the runner file.
 
-Нужен, чтобы runner исключил сам себя из списка запускаемых тестов.
+Needed so the runner can exclude itself from the list of runnable tests.
 
 ### `log`
 
-Опциональная функция вывода диагностических сообщений.
+Optional function for diagnostic messages.
 
 ```ts
 runSuite({
@@ -339,58 +339,58 @@ runSuite({
 });
 ```
 
-Это удобно для тестов, где нужно проверить диагностический вывод без подмены `console.warn`.
+This is convenient for tests where diagnostic output must be checked without replacing `console.warn`.
 
-## Поведение exit code
+## Exit Code Behavior
 
-`runSuite()` не вызывает `process.exit()` напрямую.
+`runSuite()` does not call `process.exit()` directly.
 
-При ошибке запуска или отсутствии тестов runner выставляет:
+On execution failure or when no tests are found, the runner sets:
 
 ```ts
 process.exitCode = 1;
 ```
 
-Такой подход безопаснее:
+This approach is safer:
 
-* процесс не завершается посреди теста;
-* модуль проще покрывать unit-тестами;
-* вызывающий код сохраняет контроль над жизненным циклом процесса.
+* the process does not terminate in the middle of a test;
+* the module is easier to cover with unit tests;
+* calling code keeps control over the process lifecycle.
 
-## Ограничения
+## Limitations
 
-Runner рассчитан на стандартную TypeScript-сборку, где относительная структура `src` и `dist` совпадает.
+The runner is designed for a standard TypeScript build where the relative structure of `src` and `dist` matches.
 
-Поддерживаемый случай:
+Supported case:
 
 ```text
 src/a/b/example.test.ts
 dist/a/b/example.test.js
 ```
 
-Если сборка меняет структуру директорий, runner не сможет корректно восстановить source path по compiled path без дополнительной настройки.
+If the build changes the directory structure, the runner cannot correctly restore the source path from the compiled path without additional configuration.
 
-## Когда runner полезен
+## When The Runner Is Useful
 
-Runner полезен, если проект:
+The runner is useful when a project:
 
-* пишет тесты на TypeScript;
-* запускает compiled tests из `dist`;
-* не хочет полагаться на `dist/**/*.test.js`;
-* имеет вложенные test-файлы;
-* не очищает `dist` полностью перед каждым запуском;
-* хочет защититься от stale compiled tests;
-* использует нативный Node.js test runner.
+* writes tests in TypeScript;
+* runs compiled tests from `dist`;
+* does not want to rely on `dist/**/*.test.js`;
+* has nested test files;
+* does not fully clean `dist` before each run;
+* wants protection from stale compiled tests;
+* uses the native Node.js test runner.
 
-## Когда runner не нужен
+## When The Runner Is Not Needed
 
-Runner обычно не нужен, если проект запускает TypeScript-тесты напрямую без промежуточного `dist`.
+The runner is usually not needed if a project runs TypeScript tests directly without an intermediate `dist`.
 
-Runner также может быть избыточен, если перед каждой сборкой `dist` полностью удаляется и затем создается заново, а запуск тестов не зависит от shell glob.
+The runner may also be excessive if `dist` is fully deleted before every build and then created again, and test execution does not depend on shell glob.
 
-## Тестирование runner-а
+## Testing The Runner
 
-Для unit-тестов runner-а удобно создавать временную структуру проекта:
+For runner unit tests, it is convenient to create a temporary project structure:
 
 ```ts
 const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-runner-'));
@@ -398,7 +398,7 @@ const distDir = path.join(projectDir, 'dist');
 const sourceDir = path.join(projectDir, 'src');
 ```
 
-Cleanup лучше делать внутри каждого теста через `t.after()`:
+Cleanup is better done inside each test through `t.after()`:
 
 ```ts
 test('removes stale compiled test', (t) => {
@@ -412,17 +412,17 @@ test('removes stale compiled test', (t) => {
 });
 ```
 
-Так каждый тест остается самостоятельным и не зависит от общего mutable setup-а.
+This keeps each test independent and avoids dependence on shared mutable setup.
 
-## Резюме
+## Summary
 
-`suite.js` — это не отдельный тестовый фреймворк.
+`suite.js` is not a separate test framework.
 
-Это небольшой entrypoint поверх нативного `node:test`, который делает запуск compiled TypeScript-тестов более надежным:
+It is a small entrypoint on top of native `node:test` that makes running compiled TypeScript tests more reliable:
 
 ```text
-без shell glob
-с рекурсивным обходом dist
-с защитой от stale compiled tests
-с явным списком файлов для node:test
+without shell glob
+with recursive dist traversal
+with protection from stale compiled tests
+with an explicit file list for node:test
 ```
