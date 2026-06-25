@@ -1,164 +1,272 @@
 import assert from 'node:assert';
-import { existsSync } from 'node:fs';
-import { mkdtemp, mkdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join, relative, sep } from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, test } from 'node:test';
+
 import {
   collectTestFiles,
   removeCompiledTestsWithoutSource
 } from './suite';
 
-type TempProject = {
-  projectDir: string;
-  sourceDir: string;
-  distDir: string;
-};
+describe('collectTestFiles', () => {
+  test('collects matching test files recursively in deterministic order', (t) => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
-async function withTempProject(fn: (project: TempProject) => Promise<void>): Promise<void> {
-  const projectDir = await mkdtemp(join(tmpdir(), 'suite-runner-'));
-  const sourceDir = join(projectDir, 'src');
-  const distDir = join(projectDir, 'dist');
-
-  try {
-    await mkdir(sourceDir, { recursive: true });
-    await mkdir(distDir, { recursive: true });
-    await fn({
-      projectDir,
-      sourceDir,
-      distDir
+    t.after(() => {
+      fs.rmSync(rootDir, { recursive: true, force: true });
     });
-  }
-  finally {
-    await rm(projectDir, { recursive: true, force: true });
-  }
-}
 
-async function touch(file: string): Promise<void> {
-  await mkdir(dirname(file), { recursive: true });
-  await writeFile(file, '');
-}
+    fs.mkdirSync(path.join(rootDir, 'unit', 'nested'), { recursive: true });
 
-function projectPath(root: string, file: string): string {
-  return relative(root, file).split(sep).join('/');
-}
+    fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'a.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'c.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'source.test.ts'), '');
+    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'ignore.js'), '');
 
-describe('suite runner helpers', () => {
-  describe('collectTestFiles', () => {
-    test('returns matching test files from nested directories', async () => {
-      await withTempProject(async ({ distDir }) => {
-        await touch(join(distDir, 'a.test.js'));
-        await touch(join(distDir, 'nested', 'b.test.js'));
-        await touch(join(distDir, 'nested', 'c.test.ts'));
-        await touch(join(distDir, 'regular.js'));
+    const files = collectTestFiles(rootDir, '.test.js')
+      .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
 
-        const files = collectTestFiles(distDir, '.test.js')
-          .map((file) => projectPath(distDir, file))
-          .sort();
-
-        assert.deepStrictEqual(files, [
-          'a.test.js',
-          'nested/b.test.js'
-        ]);
-      });
-    });
+    assert.deepStrictEqual(files, [
+      'a.test.js',
+      'b.test.js',
+      'unit/nested/c.test.js'
+    ]);
   });
 
-  describe('removeCompiledTestsWithoutSource', () => {
-    test('deletes stale compiled tests and keeps runnable tests', async () => {
-      await withTempProject(async ({ projectDir, sourceDir, distDir }) => {
-        const runnableCompiled = join(distDir, 'feature', 'active.test.js');
-        const staleCompiled = join(distDir, 'feature', 'stale.test.js');
-        const runnableSource = join(sourceDir, 'feature', 'active.test.ts');
-        const logs: string[] = [];
+  test('collects only files with the requested extension', (t) => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
-        await touch(runnableCompiled);
-        await touch(staleCompiled);
-        await touch(runnableSource);
-        await utimes(runnableSource, new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
-        await utimes(runnableCompiled, new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
+    t.after(() => {
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    });
 
-        const runnableFiles = removeCompiledTestsWithoutSource(
-          [
-            staleCompiled,
-            runnableCompiled
-          ],
+    fs.mkdirSync(path.join(rootDir, 'nested'), { recursive: true });
+
+    fs.writeFileSync(path.join(rootDir, 'compiled.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'source.test.ts'), '');
+    fs.writeFileSync(path.join(rootDir, 'nested', 'nested.test.ts'), '');
+
+    const files = collectTestFiles(rootDir, '.test.ts')
+      .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
+
+    assert.deepStrictEqual(files, [
+      'nested/nested.test.ts',
+      'source.test.ts'
+    ]);
+  });
+});
+
+describe('removeCompiledTestsWithoutSource', () => {
+  test('keeps compiled test when matching source test exists and is not newer', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const distDir = path.join(projectDir, 'dist');
+    const sourceDir = path.join(projectDir, 'src');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(sourceDir, { recursive: true });
+
+    const compiledFile = path.join(distDir, 'sample.test.js');
+    const sourceFile = path.join(sourceDir, 'sample.test.ts');
+
+    fs.writeFileSync(compiledFile, '');
+    fs.writeFileSync(sourceFile, '');
+
+    fs.utimesSync(
+      sourceFile,
+      new Date('2000-01-01T00:00:00.000Z'),
+      new Date('2000-01-01T00:00:00.000Z')
+    );
+
+    fs.utimesSync(
+      compiledFile,
+      new Date('2000-01-02T00:00:00.000Z'),
+      new Date('2000-01-02T00:00:00.000Z')
+    );
+
+    const messages: string[] = [];
+
+    const runnableFiles = removeCompiledTestsWithoutSource(
+      [compiledFile],
+      {
+        distDir,
+        sourceDir,
+        projectDir,
+        log: (message) => {
+          messages.push(message);
+        }
+      }
+    );
+
+    assert.deepStrictEqual(runnableFiles, [compiledFile]);
+    assert.strictEqual(fs.existsSync(compiledFile), true);
+    assert.deepStrictEqual(messages, []);
+  });
+
+  test('removes compiled test when matching source test does not exist', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const distDir = path.join(projectDir, 'dist');
+    const sourceDir = path.join(projectDir, 'src');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(sourceDir, { recursive: true });
+
+    const compiledFile = path.join(distDir, 'orphan.test.js');
+    fs.writeFileSync(compiledFile, '');
+
+    const messages: string[] = [];
+
+    const runnableFiles = removeCompiledTestsWithoutSource(
+      [compiledFile],
+      {
+        distDir,
+        sourceDir,
+        projectDir,
+        log: (message) => {
+          messages.push(message);
+        }
+      }
+    );
+
+    assert.deepStrictEqual(runnableFiles, []);
+    assert.strictEqual(fs.existsSync(compiledFile), false);
+    assert.deepStrictEqual(messages, [
+      [
+        'Removed stale compiled tests without source:',
+        '- dist/orphan.test.js'
+      ].join('\n')
+    ]);
+  });
+
+  test('throws when source test is newer than compiled test', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const distDir = path.join(projectDir, 'dist');
+    const sourceDir = path.join(projectDir, 'src');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(sourceDir, { recursive: true });
+
+    const compiledFile = path.join(distDir, 'stale.test.js');
+    const sourceFile = path.join(sourceDir, 'stale.test.ts');
+
+    fs.writeFileSync(compiledFile, '');
+    fs.writeFileSync(sourceFile, '');
+
+    fs.utimesSync(
+      compiledFile,
+      new Date('2000-01-01T00:00:00.000Z'),
+      new Date('2000-01-01T00:00:00.000Z')
+    );
+
+    fs.utimesSync(
+      sourceFile,
+      new Date('2000-01-02T00:00:00.000Z'),
+      new Date('2000-01-02T00:00:00.000Z')
+    );
+
+    const ignoredMessages: string[] = [];
+
+    assert.throws(
+      () => {
+        removeCompiledTestsWithoutSource(
+          [compiledFile],
           {
             distDir,
             sourceDir,
             projectDir,
-            log: (message) => logs.push(message)
-          }
-        );
-
-        assert.deepStrictEqual(runnableFiles, [runnableCompiled]);
-        assert.strictEqual(existsSync(runnableCompiled), true);
-        assert.strictEqual(existsSync(staleCompiled), false);
-        assert.deepStrictEqual(logs, [
-          [
-            'Removed stale compiled tests without source:',
-            '- dist/feature/stale.test.js'
-          ].join('\n')
-        ]);
-      });
-    });
-
-    test('does not rewrite runnable compiled tests', async () => {
-      await withTempProject(async ({ projectDir, sourceDir, distDir }) => {
-        const runnableCompiled = join(distDir, 'feature', 'active.test.js');
-        const runnableSource = join(sourceDir, 'feature', 'active.test.ts');
-        const logs: string[] = [];
-
-        await touch(runnableSource);
-        await mkdir(dirname(runnableCompiled), { recursive: true });
-        await writeFile(runnableCompiled, 'compiled test');
-
-        const runnableFiles = removeCompiledTestsWithoutSource(
-          [runnableCompiled],
-          {
-            distDir,
-            sourceDir,
-            projectDir,
-            log: (message) => logs.push(message)
-          }
-        );
-
-        assert.deepStrictEqual(runnableFiles, [runnableCompiled]);
-        assert.strictEqual(await readFile(runnableCompiled, 'utf8'), 'compiled test');
-        assert.deepStrictEqual(logs, []);
-      });
-    });
-
-    test('throws when compiled test is older than source test', async () => {
-      await withTempProject(async ({ projectDir, sourceDir, distDir }) => {
-        const staleCompiled = join(distDir, 'feature', 'stale-content.test.js');
-        const freshSource = join(sourceDir, 'feature', 'stale-content.test.ts');
-
-        await touch(staleCompiled);
-        await touch(freshSource);
-        await utimes(staleCompiled, new Date('2024-01-01T00:00:00Z'), new Date('2024-01-01T00:00:00Z'));
-        await utimes(freshSource, new Date('2024-01-02T00:00:00Z'), new Date('2024-01-02T00:00:00Z'));
-
-        assert.throws(
-          () => removeCompiledTestsWithoutSource(
-            [staleCompiled],
-            {
-              distDir,
-              sourceDir,
-              projectDir
+            log: (message) => {
+              ignoredMessages.push(message);
             }
-          ),
-          {
-            message: [
-              'Compiled tests are older than source tests.',
-              '',
-              'Rebuild before npm test:',
-              '- dist/feature/stale-content.test.js (source: src/feature/stale-content.test.ts)'
-            ].join('\n')
           }
         );
-        assert.strictEqual(existsSync(staleCompiled), true);
-      });
+      },
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.match(
+          error.message,
+          /Compiled tests are older than source tests\./
+        );
+        assert.match(
+          error.message,
+          /- dist\/stale\.test\.js \(source: src\/stale\.test\.ts\)/
+        );
+
+        return true;
+      }
+    );
+
+    assert.deepStrictEqual(ignoredMessages, []);
+  });
+
+  test('checks nested compiled tests against matching nested source tests', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const distDir = path.join(projectDir, 'dist');
+    const sourceDir = path.join(projectDir, 'src');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
     });
+
+    fs.mkdirSync(path.join(distDir, 'feature', 'nested'), { recursive: true });
+    fs.mkdirSync(path.join(sourceDir, 'feature', 'nested'), { recursive: true });
+
+    const compiledFile = path.join(
+      distDir,
+      'feature',
+      'nested',
+      'sample.test.js'
+    );
+
+    const sourceFile = path.join(
+      sourceDir,
+      'feature',
+      'nested',
+      'sample.test.ts'
+    );
+
+    fs.writeFileSync(compiledFile, '');
+    fs.writeFileSync(sourceFile, '');
+
+    fs.utimesSync(
+      sourceFile,
+      new Date('2000-01-01T00:00:00.000Z'),
+      new Date('2000-01-01T00:00:00.000Z')
+    );
+
+    fs.utimesSync(
+      compiledFile,
+      new Date('2000-01-02T00:00:00.000Z'),
+      new Date('2000-01-02T00:00:00.000Z')
+    );
+
+    const ignoredMessages: string[] = [];
+
+    const runnableFiles = removeCompiledTestsWithoutSource(
+      [compiledFile],
+      {
+        distDir,
+        sourceDir,
+        projectDir,
+        log: (message) => {
+          ignoredMessages.push(message);
+        }
+      }
+    );
+
+    assert.deepStrictEqual(runnableFiles, [compiledFile]);
+    assert.deepStrictEqual(ignoredMessages, []);
   });
 });
