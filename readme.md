@@ -4,8 +4,8 @@ The module runs compiled TypeScript tests from `dist` through the native Node.js
 
 The runner solves two practical problems:
 
-1. Reliably finds nested `*.test.js` files in `dist` without depending on shell glob behavior.
-2. Protects the project from running stale compiled tests that remain after source `*.test.ts` files were deleted or changed.
+1. Reliably finds nested `*.test.js` and `*.spec.js` files in `dist` without depending on shell glob behavior.
+2. Protects the project from running stale compiled tests that remain after source `*.test.ts` or `*.spec.ts` files were deleted or changed.
 
 ## Purpose
 
@@ -13,34 +13,38 @@ In a TypeScript project, tests are written in `src`:
 
 ```
 src/feature/sample.test.ts
+src/feature/sample.spec.ts
 ```
 
-After build, a compiled file appears:
+After build, compiled files appear:
 
 ```
 dist/feature/sample.test.js
+dist/feature/sample.spec.js
 ```
 
-If tests are run directly through a glob:
+If tests are run directly through shell globs:
 
 ```sh
-node --test dist/**/*.test.js
+node --test dist/**/*.test.js dist/**/*.spec.js
 ```
 
 the result may depend on the shell that executes the command.
 
-In npm scripts, a command usually goes through a shell. Not every shell handles `**` in the same way, and in some cases `dist/**/*.test.js` may find only tests at one nesting level while missing deeper files.
+In npm scripts, a command usually goes through a shell. Not every shell handles `**` in the same way, and in some cases `dist/**/*.test.js` or `dist/**/*.spec.js` may find only tests at one nesting level while missing deeper files.
 
 For example, these files may be found:
 
 ```
 dist/feature/sample.test.js
+dist/feature/sample.spec.js
 ```
 
 but these files may be missed:
 
 ```
 dist/feature/nested/sample.test.js
+dist/feature/nested/sample.spec.js
 dist/feature/nested/deep/sample.test.js
 ```
 
@@ -54,7 +58,7 @@ For this reason, the project uses a separate suite entrypoint:
 }
 ```
 
-`suite.js` recursively walks `dist` itself, collects all `*.test.js` files at any depth, and passes the final file list to native `node:test`.
+`suite.js` recursively walks `dist` itself, collects all `*.test.js` and `*.spec.js` files at any depth, and passes the final file list to native `node:test`.
 
 ## Difference From `node --test`
 
@@ -65,7 +69,7 @@ It uses `node:test` internally, but takes responsibility for preparing the file 
 Regular execution:
 
 ```sh
-node --test dist/**/*.test.js
+node --test dist/**/*.test.js dist/**/*.spec.js
 ```
 
 relies on glob pattern handling outside Node.js or inside Node.js. In practice, this can be non-obvious and can depend on the environment, shell, and command form.
@@ -91,9 +95,9 @@ suite.js is responsible for safely selecting test files from dist.
 
 Before running tests, the runner performs a preflight check:
 
-1. Recursively finds all `*.test.js` files in `dist`.
+1. Recursively finds all `*.test.js` and `*.spec.js` files in `dist`.
 2. Excludes the runner file itself from the list.
-3. Restores the expected path to `src/**/*.test.ts` for each `dist/**/*.test.js`.
+3. Restores the expected source path for each compiled JS test.
 4. Removes a compiled test if the corresponding source test no longer exists.
 5. Aborts execution if the source test is newer than the compiled test.
 6. Passes the remaining files to native `node:test`.
@@ -106,12 +110,14 @@ project/
 |   |-- suite.ts
 |   `-- feature/
 |       |-- sample.test.ts
+|       |-- sample.spec.ts
 |       `-- nested/
 |           `-- deep.test.ts
 |-- dist/
 |   |-- suite.js
 |   `-- feature/
 |       |-- sample.test.js
+|       |-- sample.spec.js
 |       `-- nested/
 |           `-- deep.test.js
 |-- package.json
@@ -155,12 +161,12 @@ The runner does not require full deletion of `dist` before running tests.
 
 It removes only compiled test files for which the corresponding source test file no longer exists.
 
-## Why Not `dist/**/*.test.js`
+## Why Not Shell Globs
 
 A command like:
 
 ```sh
-node --test dist/**/*.test.js
+node --test dist/**/*.test.js dist/**/*.spec.js
 ```
 
 looks shorter, but it has two drawbacks.
@@ -188,6 +194,8 @@ For example:
 ```
 src/feature/sample.test.ts
 dist/feature/sample.test.js
+src/feature/sample.spec.ts
+dist/feature/sample.spec.js
 ```
 
 For each discovered compiled test, the runner checks the corresponding source test.
@@ -231,12 +239,12 @@ This means that `dist` does not match the current state of `src`, and the projec
 
 ## Public API
 
-### `collectTestFiles(dir, extension)`
+### `collectTestFiles(dir, extensions)`
 
-Recursively collects test files with the specified extension.
+Recursively collects test files with the specified extension or extensions.
 
 ```ts
-const files = collectTestFiles('dist', '.test.js');
+const files = collectTestFiles('dist', ['.test.js', '.spec.js']);
 ```
 
 The function is used for explicit directory traversal without shell glob.
@@ -244,7 +252,7 @@ The function is used for explicit directory traversal without shell glob.
 Supported extensions:
 
 ```ts
-type Tesension = '.test.js' | '.test.ts';
+type TestExtension = '.test.js' | '.test.ts' | '.spec.js' | '.spec.ts';
 ```
 
 ### `removeCompiledTestsWithoutSource(testFiles, options)`
@@ -317,6 +325,8 @@ Used to format paths in diagnostics:
 ```
 dist/feature/sample.test.js
 src/feature/sample.test.ts
+dist/feature/sample.spec.js
+src/feature/sample.spec.ts
 ```
 
 Messages do not use absolute paths so output is identical locally, in a container, and in CI.
@@ -366,6 +376,8 @@ Supported case:
 ```
 src/a/b/example.test.ts
 dist/a/b/example.test.js
+src/a/b/example.spec.ts
+dist/a/b/example.spec.js
 ```
 
 If the build changes the directory structure, the runner cannot correctly restore the source path from the compiled path without additional configuration.
@@ -376,7 +388,7 @@ The runner is useful when a project:
 
 * writes tests in TypeScript;
 * runs compiled tests from `dist`;
-* does not want to rely on `dist/**/*.test.js`;
+* does not want to rely on shell globs such as `dist/**/*.test.js` and `dist/**/*.spec.js`;
 * has nested test files;
 * does not fully clean `dist` before each run;
 * wants protection from stale compiled tests;

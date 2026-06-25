@@ -8,10 +8,15 @@ import * as ts from 'typescript';
 /**
  * Supported test file extensions.
  *
- * `.test.ts` represents the source test in src, while `.test.js`
- * is the compiled test file that runs from dist.
+ * `.test.ts` and `.spec.ts` represent source tests in src, while
+ * `.test.js` and `.spec.js` are compiled test files that run from dist.
  */
-type TestExtension = '.test.js' | '.test.ts';
+type TestExtension = '.test.js' | '.test.ts' | '.spec.js' | '.spec.ts';
+
+const compiledTestExtensions = [
+  '.test.js',
+  '.spec.js'
+] as const satisfies readonly TestExtension[];
 
 /**
  * Diagnostic message output function.
@@ -24,7 +29,7 @@ type Log = (message: string) => void;
 /**
  * Options for checking compiled tests before running the test runner.
  *
- * The check links dist/*.test.js to the corresponding src/*.test.ts files
+ * The check links compiled JS tests to the corresponding source TS tests
  * and protects against running stale compiled files.
  */
 type CompiledTestCleanupOptions = {
@@ -105,12 +110,26 @@ type OutdatedCompiledTest = {
 };
 
 /**
- * Recursively collects test files with the specified extension.
+ * Recursively collects test files with the specified extension or extensions.
  *
  * Traversal order is stabilized by sorting so test execution does not depend
  * on the order in which the filesystem returns directory contents.
  */
-export function collectTestFiles(dir: string, extension: TestExtension): string[] {
+export function collectTestFiles(
+  dir: string,
+  extensions: TestExtension | readonly TestExtension[]
+): string[] {
+  const acceptedExtensions: readonly TestExtension[] = Array.isArray(extensions)
+    ? extensions
+    : [extensions];
+
+  return collectTestFilesByExtension(dir, acceptedExtensions);
+}
+
+function collectTestFilesByExtension(
+  dir: string,
+  extensions: readonly TestExtension[]
+): string[] {
   const files: string[] = [];
 
   const entries = fs
@@ -121,11 +140,14 @@ export function collectTestFiles(dir: string, extension: TestExtension): string[
     const fullPath = path.join(dir, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...collectTestFiles(fullPath, extension));
+      files.push(...collectTestFilesByExtension(fullPath, extensions));
       continue;
     }
 
-    if (entry.isFile() && entry.name.endsWith(extension)) {
+    if (
+      entry.isFile()
+      && extensions.some((extension) => entry.name.endsWith(extension))
+    ) {
       files.push(fullPath);
     }
   }
@@ -314,8 +336,8 @@ export function resolveSuiteOptions(
  * Removes compiled tests for which source TS files no longer exist.
  *
  * Additionally checks that an existing compiled test is not older than its source test.
- * This protects against a false-positive run of old dist/*.test.js after
- * the corresponding src/*.test.ts was changed or deleted.
+ * This protects against a false-positive run of old compiled JS tests after
+ * the corresponding source TS tests were changed or deleted.
  */
 export function removeCompiledTestsWithoutSource(
   testFiles: string[],
@@ -409,7 +431,7 @@ export function runSuite(options: SuiteRunnerOptions = {}): void {
   assertDirectory(sourceDir, 'sourceDir', projectDir);
 
   const testFiles = removeCompiledTestsWithoutSource(
-    collectTestFiles(distDir, '.test.js')
+    collectTestFiles(distDir, compiledTestExtensions)
       .filter((file) => path.resolve(file) !== path.resolve(runnerFile)),
     cleanupOptions
   );

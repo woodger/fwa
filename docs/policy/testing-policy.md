@@ -18,7 +18,7 @@ Not:
 
 ## How To Run Tests
 
-Tests are written in TypeScript in `src/**/*.test.ts` and use standard Node.js modules:
+Tests are written in TypeScript in `src/**/*.test.ts` or `src/**/*.spec.ts` and use standard Node.js modules:
 
 - `node:test`;
 - `node:assert`.
@@ -56,12 +56,14 @@ src/bootstrap/help/renderer.ts      -> src/bootstrap/help/renderer.test.ts
 src/bootstrap/help/commands.ts      -> src/bootstrap/help/commands.test.ts
 src/bootstrap/help/help.ts          -> src/bootstrap/help/help.test.ts
 src/bootstrap/cli.ts                -> src/bootstrap/cli.test.ts
+src/bootstrap/config.ts             -> src/bootstrap/config.spec.ts
 ```
 
 Creating a test whose name looks like a test for a directory or barrel module is forbidden:
 
 ```text
 src/bootstrap/help.test.ts          # covers the help/ directory
+src/bootstrap/help.spec.ts          # covers the help/ directory
 src/bootstrap/help/index.test.ts    # covers a barrel-only index.ts
 ```
 

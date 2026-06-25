@@ -22,17 +22,21 @@ describe('collectTestFiles', () => {
 
     fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
     fs.writeFileSync(path.join(rootDir, 'a.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'a.spec.js'), '');
     fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'c.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'd.spec.js'), '');
     fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'source.test.ts'), '');
     fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'ignore.js'), '');
 
-    const files = collectTestFiles(rootDir, '.test.js')
+    const files = collectTestFiles(rootDir, ['.test.js', '.spec.js'])
       .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
 
     assert.deepStrictEqual(files, [
+      'a.spec.js',
       'a.test.js',
       'b.test.js',
-      'unit/nested/c.test.js'
+      'unit/nested/c.test.js',
+      'unit/nested/d.spec.js'
     ]);
   });
 
@@ -47,6 +51,7 @@ describe('collectTestFiles', () => {
 
     fs.writeFileSync(path.join(rootDir, 'compiled.test.js'), '');
     fs.writeFileSync(path.join(rootDir, 'source.test.ts'), '');
+    fs.writeFileSync(path.join(rootDir, 'source.spec.ts'), '');
     fs.writeFileSync(path.join(rootDir, 'nested', 'nested.test.ts'), '');
 
     const files = collectTestFiles(rootDir, '.test.ts')
@@ -385,5 +390,54 @@ describe('removeCompiledTestsWithoutSource', () => {
 
     assert.deepStrictEqual(runnableFiles, [compiledFile]);
     assert.deepStrictEqual(ignoredMessages, []);
+  });
+
+  test('checks compiled specs against matching source specs', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const distDir = path.join(projectDir, 'dist');
+    const sourceDir = path.join(projectDir, 'src');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(distDir, { recursive: true });
+    fs.mkdirSync(sourceDir, { recursive: true });
+
+    const compiledFile = path.join(distDir, 'sample.spec.js');
+    const sourceFile = path.join(sourceDir, 'sample.spec.ts');
+
+    fs.writeFileSync(compiledFile, '');
+    fs.writeFileSync(sourceFile, '');
+
+    fs.utimesSync(
+      sourceFile,
+      new Date('2000-01-01T00:00:00.000Z'),
+      new Date('2000-01-01T00:00:00.000Z')
+    );
+
+    fs.utimesSync(
+      compiledFile,
+      new Date('2000-01-02T00:00:00.000Z'),
+      new Date('2000-01-02T00:00:00.000Z')
+    );
+
+    const messages: string[] = [];
+
+    const runnableFiles = removeCompiledTestsWithoutSource(
+      [compiledFile],
+      {
+        distDir,
+        sourceDir,
+        projectDir,
+        log: (message) => {
+          messages.push(message);
+        }
+      }
+    );
+
+    assert.deepStrictEqual(runnableFiles, [compiledFile]);
+    assert.strictEqual(fs.existsSync(compiledFile), true);
+    assert.deepStrictEqual(messages, []);
   });
 });
