@@ -11,7 +11,7 @@ import {
 } from './suite';
 
 describe('collectTestFiles', () => {
-  test('collects matching test files recursively in deterministic order', (t) => {
+  test('collects matching files recursively', (t) => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
@@ -20,23 +20,54 @@ describe('collectTestFiles', () => {
 
     fs.mkdirSync(path.join(rootDir, 'unit', 'nested'), { recursive: true });
 
-    fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
-    fs.writeFileSync(path.join(rootDir, 'a.test.js'), '');
-    fs.writeFileSync(path.join(rootDir, 'a.spec.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'root.test.js'), '');
     fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'c.test.js'), '');
-    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'd.spec.js'), '');
-    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'source.test.ts'), '');
-    fs.writeFileSync(path.join(rootDir, 'unit', 'nested', 'ignore.js'), '');
+
+    const files = collectTestFiles(rootDir, '.test.js')
+      .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
+
+    assert.deepStrictEqual(files, [
+      'root.test.js',
+      'unit/nested/c.test.js'
+    ]);
+  });
+
+  test('collects all requested extensions', (t) => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(path.join(rootDir, 'sample.spec.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'sample.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'sample.js'), '');
 
     const files = collectTestFiles(rootDir, ['.test.js', '.spec.js'])
       .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
 
     assert.deepStrictEqual(files, [
-      'a.spec.js',
+      'sample.spec.js',
+      'sample.test.js'
+    ]);
+  });
+
+  test('returns files in deterministic order', (t) => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
+    fs.writeFileSync(path.join(rootDir, 'a.test.js'), '');
+
+    const files = collectTestFiles(rootDir, '.test.js')
+      .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
+
+    assert.deepStrictEqual(files, [
       'a.test.js',
-      'b.test.js',
-      'unit/nested/c.test.js',
-      'unit/nested/d.spec.js'
+      'b.test.js'
     ]);
   });
 
@@ -333,7 +364,7 @@ describe('removeCompiledTestsWithoutSource', () => {
     assert.deepStrictEqual(ignoredMessages, []);
   });
 
-  test('checks nested compiled tests against matching nested source tests', (t) => {
+  test('keeps nested compiled test when matching nested source test exists', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
     const distDir = path.join(projectDir, 'dist');
     const sourceDir = path.join(projectDir, 'src');
@@ -392,7 +423,7 @@ describe('removeCompiledTestsWithoutSource', () => {
     assert.deepStrictEqual(ignoredMessages, []);
   });
 
-  test('checks compiled specs against matching source specs', (t) => {
+  test('keeps compiled spec when matching source spec exists', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
     const distDir = path.join(projectDir, 'dist');
     const sourceDir = path.join(projectDir, 'src');
