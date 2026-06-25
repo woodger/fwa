@@ -5,15 +5,15 @@ import {
   runSuiteUseCase,
   type ResolvedSuiteRunnerOptions,
   type SuiteRunnerOptions
-} from '../application/run-suite.use-case';
-import { runNodeTestFiles } from '../infrastructure/node-test-runner.adapter';
+} from '../application/run-suite';
+import { runNodeTestFiles } from '../infrastructure/node-test';
 import {
   assertDirectory,
   collectTestFiles,
   removeCompiledTestsWithoutSource
-} from '../infrastructure/suite-filesystem.adapter';
-import { readTsConfigDirectories } from '../infrastructure/tsconfig-directories.adapter';
-import { toProjectPath } from '../internal/project-path';
+} from '../infrastructure/test-files';
+import { readTsConfigDirectories } from '../infrastructure/tsconfig-directories';
+import { toProjectPath } from '../infrastructure/project-path';
 
 /**
  * Resolves all runner options into absolute paths.

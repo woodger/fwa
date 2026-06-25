@@ -2,7 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 import * as ts from 'typescript';
 
-import { toProjectPath } from '../internal/project-path';
+import { toProjectPath } from './project-path';
 
 export type TsConfigDirectories = {
   sourceDir: string;

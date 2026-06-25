@@ -7,9 +7,9 @@ import { describe, test } from 'node:test';
 import {
   collectTestFiles,
   removeCompiledTestsWithoutSource
-} from './suite-filesystem.adapter';
+} from './test-files';
 
-describe('suite-filesystem.adapter', () => {
+describe('test-files', () => {
   describe('collectTestFiles', () => {
     test('collects matching files recursively', (t) => {
       const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));

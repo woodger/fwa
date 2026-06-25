@@ -5,7 +5,7 @@ import {
   runSuiteUseCase,
   type CompiledTestCleanupOptions,
   type RunSuiteUseCaseDependencies
-} from './run-suite.use-case';
+} from './run-suite';
 
 describe('runSuiteUseCase', () => {
   test('sets exit code when no runnable tests are found', () => {

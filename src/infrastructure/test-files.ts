@@ -4,9 +4,8 @@ import path from 'node:path';
 import type {
   CompiledTestCleanupOptions,
   TestExtension
-} from '../application/run-suite.use-case';
-import { isFileNotFoundError } from '../internal/node-error';
-import { toProjectPath } from '../internal/project-path';
+} from '../application/run-suite';
+import { toProjectPath } from './project-path';
 
 /**
  * Description of a compiled test that is older than its source TS file.
@@ -121,6 +120,14 @@ function readOptionalFileStat(file: string): fs.Stats | undefined {
 
     throw error;
   }
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error
+    && 'code' in error
+    && error.code === 'ENOENT'
+  );
 }
 
 /**

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { resolveSuiteOptions } from './run-suite.bootstrap';
+import { resolveSuiteOptions } from './run-suite';
 
 describe('resolveSuiteOptions', () => {
   test('uses explicit sourceDir and distDir without tsconfig', (t) => {
