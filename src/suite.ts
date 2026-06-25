@@ -13,6 +13,12 @@ import * as ts from 'typescript';
  */
 type TestExtension = '.test.js' | '.test.ts' | '.spec.js' | '.spec.ts';
 
+/**
+ * Runtime execution uses compiled JavaScript tests only.
+ *
+ * Source TypeScript extensions stay in `TestExtension` because `collectTestFiles`
+ * is public and can also be used for source-side checks.
+ */
 const compiledTestExtensions = [
   '.test.js',
   '.spec.js'
@@ -126,6 +132,13 @@ export function collectTestFiles(
   return collectTestFilesByExtension(dir, acceptedExtensions);
 }
 
+/**
+ * Internal recursive collector.
+ *
+ * The public wrapper normalizes one extension into an array once, so recursive
+ * calls can reuse the same immutable list instead of repeating that branching
+ * for every visited directory.
+ */
 function collectTestFilesByExtension(
   dir: string,
   extensions: readonly TestExtension[]
@@ -228,6 +241,13 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
   });
 }
 
+/**
+ * Reads source and output directories through the TypeScript config parser.
+ *
+ * Using the compiler API keeps `rootDir`, `outDir`, `extends`, and path
+ * normalization behavior aligned with TypeScript instead of duplicating
+ * tsconfig rules manually.
+ */
 function readTsConfigDirectories(projectDir: string): TsConfigDirectories {
   const configFile = ts.findConfigFile(
     projectDir,
@@ -273,6 +293,12 @@ function readTsConfigDirectories(projectDir: string): TsConfigDirectories {
   };
 }
 
+/**
+ * Verifies a resolved project directory before the runner starts filesystem work.
+ *
+ * Error messages use project-relative paths so diagnostics stay stable across
+ * local machines, containers, and CI.
+ */
 function assertDirectory(dir: string, name: string, projectDir: string): void {
   let stat: fs.Stats;
 
@@ -295,6 +321,13 @@ function assertDirectory(dir: string, name: string, projectDir: string): void {
   }
 }
 
+/**
+ * Resolves all runner options into absolute paths.
+ *
+ * Explicit `sourceDir` and `distDir` win. If either is missing, the missing
+ * value is resolved from tsconfig so partial caller options still follow the
+ * same project layout rules as a normal TypeScript build.
+ */
 export function resolveSuiteOptions(
   options: SuiteRunnerOptions = {}
 ): ResolvedSuiteRunnerOptions {
