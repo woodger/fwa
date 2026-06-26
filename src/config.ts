@@ -14,6 +14,6 @@ export const defaultRunnerConfig = {
   tsConfigFileName: 'tsconfig.json',
   nodeTest: {
     concurrency: true,
-    isolation: 'process'
+    defaultIsolation: 'process'
   }
 } as const satisfies RunnerConfig;

@@ -1,3 +1,5 @@
+import { defaultRunnerConfig } from '../config';
+import type { TestIsolation } from '../config.types';
 import type { SuiteRunnerOptions } from '../application/run-suite';
 
 /**
@@ -25,11 +27,16 @@ function renderHelp(): string {
     'Usage: fwa [project-root] [options]',
     '',
     'Options:',
-    '  -p, --project <path>  TypeScript config file or directory.',
-    '  -h, --help            Show help.',
-    '  -v, --version         Show version.',
+    '  -p, --project <path>     TypeScript config file or directory.',
+    `  -i, --isolation <mode>   Test isolation: process or none. Default: ${defaultRunnerConfig.nodeTest.defaultIsolation}.`,
+    '  -h, --help               Show help.',
+    '  -v, --version            Show version.',
     ''
   ].join('\n');
+}
+
+function isTestIsolation(value: string): value is TestIsolation {
+  return value === 'process' || value === 'none';
 }
 
 export function runCli(
@@ -78,9 +85,10 @@ export function runCli(
 
   const projectArgs: string[] = [];
   let tsConfigPath: string | undefined;
+  let isolation: TestIsolation | undefined;
 
   // Keep parsing small and strict: one positional project root plus
-  // a TypeScript-style --project/-p option.
+  // TypeScript-style options with separate values.
   for (let index = 0; index < options.args.length; index += 1) {
     const arg = options.args[index];
 
@@ -109,6 +117,32 @@ export function runCli(
       continue;
     }
 
+    if (arg === '--isolation' || arg === '-i') {
+      if (isolation !== undefined) {
+        dependencies.writeStderr('Option --isolation cannot be specified more than once.\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      const value = options.args[index + 1];
+
+      if (value === undefined || value.startsWith('-')) {
+        dependencies.writeStderr('Option --isolation expects a value.\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      if (!isTestIsolation(value)) {
+        dependencies.writeStderr('Option --isolation expects "process" or "none".\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      isolation = value;
+      index += 1;
+      continue;
+    }
+
     if (arg.startsWith('-')) {
       dependencies.writeStderr(`Unknown option: ${arg}\n`);
       dependencies.setExitCode(1);
@@ -133,6 +167,10 @@ export function runCli(
 
   if (tsConfigPath !== undefined) {
     suiteOptions.tsConfigPath = tsConfigPath;
+  }
+
+  if (isolation !== undefined) {
+    suiteOptions.isolation = isolation;
   }
 
   dependencies.runSuite(suiteOptions);

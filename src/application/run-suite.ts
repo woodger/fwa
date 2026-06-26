@@ -1,7 +1,7 @@
 import { defaultRunnerConfig } from '../config';
-import type { TestExtension } from '../config.types';
+import type { TestExtension, TestIsolation } from '../config.types';
 
-export type { TestExtension } from '../config.types';
+export type { TestExtension, TestIsolation } from '../config.types';
 
 /**
  * Diagnostic message output function.
@@ -80,6 +80,13 @@ export type SuiteRunnerOptions = {
   runnerFile?: string;
 
   /**
+   * Native Node.js test runner isolation mode.
+   *
+   * Uses the project default when omitted.
+   */
+  isolation?: TestIsolation;
+
+  /**
    * Optional diagnostic message output.
    */
   log?: Log;
@@ -87,6 +94,7 @@ export type SuiteRunnerOptions = {
 
 export type ResolvedSuiteRunnerOptions = CompiledTestCleanupOptions & {
   runnerFile: string;
+  isolation: TestIsolation;
 };
 
 export type RunSuiteUseCaseDependencies = {
@@ -96,7 +104,7 @@ export type RunSuiteUseCaseDependencies = {
     testFiles: string[],
     options: CompiledTestCleanupOptions
   ): string[];
-  runTestFiles(testFiles: string[]): void;
+  runTestFiles(testFiles: string[], isolation: TestIsolation): void;
   resolvePath(file: string): string;
   setExitCode(code: number): void;
   toProjectPath(file: string, projectDir: string): string;
@@ -146,5 +154,5 @@ export function runSuiteUseCase(
     return;
   }
 
-  dependencies.runTestFiles(testFiles);
+  dependencies.runTestFiles(testFiles, options.isolation);
 }

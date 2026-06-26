@@ -167,9 +167,10 @@ source changed.
 Usage: fwa [project-root] [options]
 
 Options:
-  -p, --project <path>  TypeScript config file or directory.
-  -h, --help            Show help.
-  -v, --version         Show version.
+  -p, --project <path>     TypeScript config file or directory.
+  -i, --isolation <mode>   Test isolation: process or none. Default: process.
+  -h, --help               Show help.
+  -v, --version            Show version.
 ```
 
 Rules:
@@ -178,6 +179,7 @@ Rules:
 - at most one positional project root is allowed;
 - `--project` can be used once;
 - `--project` expects a separate value: `--project tsconfig.test.json`;
+- `--isolation` can be `process` or `none`;
 - `--source-dir` and `--dist-dir` are not supported.
 
 ## Public API
@@ -200,6 +202,17 @@ import { runSuite } from 'fwa';
 runSuite({
   projectDir: process.cwd(),
   tsConfigPath: 'tsconfig.test.json'
+});
+```
+
+With process isolation disabled:
+
+```ts
+import { runSuite } from 'fwa';
+
+runSuite({
+  projectDir: process.cwd(),
+  isolation: 'none'
 });
 ```
 

@@ -40,6 +40,65 @@ describe('resolveSuiteOptions', () => {
     assert.strictEqual(options.runnerFile, 'runner.js');
   });
 
+  test('uses default test isolation', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    const options = resolveSuiteOptions({
+      projectDir
+    });
+
+    assert.strictEqual(options.isolation, 'process');
+  });
+
+  test('uses selected test isolation', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    const options = resolveSuiteOptions({
+      projectDir,
+      isolation: 'none'
+    });
+
+    assert.strictEqual(options.isolation, 'none');
+  });
+
   test('resolves sourceDir and distDir from selected TypeScript project config', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 
+import { defaultRunnerConfig } from '../config';
 import {
   runSuiteUseCase,
   type ResolvedSuiteRunnerOptions,
@@ -40,7 +41,8 @@ export function resolveSuiteOptions(
       projectDir,
       tsConfigDirectories.sourceDir
     ),
-    runnerFile: options.runnerFile ?? __filename
+    runnerFile: options.runnerFile ?? __filename,
+    isolation: options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation
   };
 
   if (options.log !== undefined) {

@@ -3,6 +3,7 @@ import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 
 import { defaultRunnerConfig } from '../config';
+import type { TestIsolation } from '../config.types';
 
 /**
  * Runs compiled JS tests through the native Node.js test runner.
@@ -11,11 +12,14 @@ import { defaultRunnerConfig } from '../config';
  * used from tests or other bootstrap scenarios. Process status is set
  * through process.exitCode.
  */
-export function runNodeTestFiles(testFiles: string[]): void {
+export function runNodeTestFiles(
+  testFiles: string[],
+  isolation: TestIsolation
+): void {
   const testStream = run({
     files: testFiles,
     concurrency: defaultRunnerConfig.nodeTest.concurrency,
-    isolation: defaultRunnerConfig.nodeTest.isolation
+    isolation
   });
 
   testStream.on('test:fail', () => {

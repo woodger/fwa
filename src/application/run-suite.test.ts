@@ -44,7 +44,8 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bin.js'
+        runnerFile: '/project/dist/bin.js',
+        isolation: 'process'
       },
       dependencies
     );
@@ -101,7 +102,8 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bin.js'
+        runnerFile: '/project/dist/bin.js',
+        isolation: 'process'
       },
       dependencies
     );
@@ -157,7 +159,8 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bin.js'
+        runnerFile: '/project/dist/bin.js',
+        isolation: 'process'
       },
       dependencies
     );
@@ -205,7 +208,8 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bin.js'
+        runnerFile: '/project/dist/bin.js',
+        isolation: 'process'
       },
       dependencies
     );
@@ -213,5 +217,48 @@ describe('runSuiteUseCase', () => {
     assert.deepStrictEqual(ranFiles, [
       '/project/dist/b.spec.js'
     ]);
+  });
+
+  test('passes isolation to test runner', () => {
+    let runnerIsolation: string | undefined;
+
+    const dependencies: RunSuiteUseCaseDependencies = {
+      assertDirectory: (dir, name, projectDir) => {
+        assert.ok(dir.startsWith(projectDir));
+        assert.match(name, /Dir$/);
+      },
+      collectTestFiles: () => {
+        return [
+          '/project/dist/a.test.js'
+        ];
+      },
+      removeCompiledTestsWithoutSource: (testFiles) => {
+        return testFiles;
+      },
+      runTestFiles: (_testFiles, isolation) => {
+        runnerIsolation = isolation;
+      },
+      resolvePath: (file) => file,
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      toProjectPath: (file, projectDir) => file.slice(projectDir.length + 1),
+      warn: (message) => {
+        assert.fail(message);
+      }
+    };
+
+    runSuiteUseCase(
+      {
+        distDir: '/project/dist',
+        sourceDir: '/project/src',
+        projectDir: '/project',
+        runnerFile: '/project/dist/bin.js',
+        isolation: 'none'
+      },
+      dependencies
+    );
+
+    assert.strictEqual(runnerIsolation, 'none');
   });
 });

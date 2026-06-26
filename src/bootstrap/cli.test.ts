@@ -38,9 +38,10 @@ describe('runCli', () => {
         'Usage: fwa [project-root] [options]',
         '',
         'Options:',
-        '  -p, --project <path>  TypeScript config file or directory.',
-        '  -h, --help            Show help.',
-        '  -v, --version         Show version.',
+        '  -p, --project <path>     TypeScript config file or directory.',
+        '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
+        '  -h, --help               Show help.',
+        '  -v, --version            Show version.',
         ''
       ].join('\n')
     ]);
@@ -80,9 +81,10 @@ describe('runCli', () => {
         'Usage: fwa [project-root] [options]',
         '',
         'Options:',
-        '  -p, --project <path>  TypeScript config file or directory.',
-        '  -h, --help            Show help.',
-        '  -v, --version         Show version.',
+        '  -p, --project <path>     TypeScript config file or directory.',
+        '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
+        '  -h, --help               Show help.',
+        '  -v, --version            Show version.',
         ''
       ].join('\n')
     ]);
@@ -282,6 +284,69 @@ describe('runCli', () => {
     assert.strictEqual(runnerTsConfigPath, 'tsconfig.test.json');
   });
 
+  test('runs suite with test isolation', () => {
+    let runnerIsolation: string | undefined;
+
+    runCli({
+      args: [
+        '--isolation',
+        'none'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerIsolation = options.isolation;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerIsolation, 'none');
+  });
+
+  test('runs suite with short test isolation option', () => {
+    let runnerIsolation: string | undefined;
+
+    runCli({
+      args: [
+        '/workspace/project',
+        '-i',
+        'process'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerIsolation = options.isolation;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerIsolation, 'process');
+  });
+
   test('rejects TypeScript project option without value', () => {
     const stderr: string[] = [];
     let exitCode: number | undefined;
@@ -349,6 +414,110 @@ describe('runCli', () => {
     assert.strictEqual(suiteWasRun, false);
     assert.strictEqual(exitCode, 1);
     assert.deepStrictEqual(stderr, ['Option --project cannot be specified more than once.\n']);
+  });
+
+  test('rejects test isolation option without value', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: ['--isolation'],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --isolation expects a value.\n']);
+  });
+
+  test('rejects duplicate test isolation option', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '--isolation',
+        'none',
+        '-i',
+        'process'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --isolation cannot be specified more than once.\n']);
+  });
+
+  test('rejects unknown test isolation value', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '--isolation',
+        'thread'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --isolation expects "process" or "none".\n']);
   });
 
   test('rejects source directory option', () => {
