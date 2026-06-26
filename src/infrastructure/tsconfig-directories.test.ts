@@ -62,6 +62,63 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(projectDir, 'dist'));
   });
 
+  test('reads explicit TypeScript project config file', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'test-source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'test-source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.test.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'test-source',
+          outDir: 'test-build'
+        },
+        include: [
+          'test-source/**/*.ts'
+        ]
+      })
+    );
+
+    const directories = readTsConfigDirectories(projectDir, 'tsconfig.test.json');
+
+    assert.strictEqual(directories.sourceDir, path.join(projectDir, 'test-source'));
+    assert.strictEqual(directories.distDir, path.join(projectDir, 'test-build'));
+  });
+
+  test('reads explicit TypeScript project directory', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const packageDir = path.join(projectDir, 'packages', 'feature');
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(packageDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(packageDir, 'src', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(packageDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 'dist'
+        },
+        include: [
+          'src/**/*.ts'
+        ]
+      })
+    );
+
+    const directories = readTsConfigDirectories(projectDir, path.join('packages', 'feature'));
+
+    assert.strictEqual(directories.sourceDir, path.join(packageDir, 'src'));
+    assert.strictEqual(directories.distDir, path.join(packageDir, 'dist'));
+  });
+
   test('throws when tsconfig does not define outDir', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 

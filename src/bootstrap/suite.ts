@@ -25,7 +25,10 @@ export function resolveSuiteOptions(
   options: SuiteRunnerOptions
 ): ResolvedSuiteRunnerOptions {
   const projectDir = path.resolve(options.projectDir);
-  const tsConfigDirectories = readTsConfigDirectories(projectDir);
+  const tsConfigDirectories = readTsConfigDirectories(
+    projectDir,
+    options.tsConfigPath
+  );
 
   const resolvedOptions: ResolvedSuiteRunnerOptions = {
     projectDir,

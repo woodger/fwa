@@ -35,11 +35,12 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa [project-root]',
+        'Usage: fwa [project-root] [options]',
         '',
         'Options:',
-        '  -h, --help     Show help.',
-        '  -v, --version  Show version.',
+        '  -p, --project <path>  TypeScript config file or directory.',
+        '  -h, --help            Show help.',
+        '  -v, --version         Show version.',
         ''
       ].join('\n')
     ]);
@@ -76,11 +77,12 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa [project-root]',
+        'Usage: fwa [project-root] [options]',
         '',
         'Options:',
-        '  -h, --help     Show help.',
-        '  -v, --version  Show version.',
+        '  -p, --project <path>  TypeScript config file or directory.',
+        '  -h, --help            Show help.',
+        '  -v, --version         Show version.',
         ''
       ].join('\n')
     ]);
@@ -206,6 +208,147 @@ describe('runCli', () => {
 
     assert.strictEqual(runnerProjectDir, '/project');
     assert.strictEqual(runnerFile, '/project/dist/bin.js');
+  });
+
+  test('runs suite with TypeScript project config', () => {
+    let runnerProjectDir: string | undefined;
+    let runnerTsConfigPath: string | undefined;
+    let runnerFile: string | undefined;
+
+    runCli({
+      args: [
+        '--project',
+        'tsconfig.test.json'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerProjectDir = options.projectDir;
+        runnerTsConfigPath = options.tsConfigPath;
+        runnerFile = options.runnerFile;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerProjectDir, '/project');
+    assert.strictEqual(runnerTsConfigPath, 'tsconfig.test.json');
+    assert.strictEqual(runnerFile, '/project/dist/bin.js');
+  });
+
+  test('runs suite with short TypeScript project option', () => {
+    let runnerProjectDir: string | undefined;
+    let runnerTsConfigPath: string | undefined;
+
+    runCli({
+      args: [
+        '/workspace/project',
+        '-p',
+        'tsconfig.test.json'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerProjectDir = options.projectDir;
+        runnerTsConfigPath = options.tsConfigPath;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerProjectDir, '/workspace/project');
+    assert.strictEqual(runnerTsConfigPath, 'tsconfig.test.json');
+  });
+
+  test('rejects TypeScript project option without value', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: ['--project'],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --project expects a value.\n']);
+  });
+
+  test('rejects duplicate TypeScript project option', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '--project',
+        'tsconfig.test.json',
+        '-p',
+        'tsconfig.build.json'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --project cannot be specified more than once.\n']);
   });
 
   test('rejects source directory option', () => {

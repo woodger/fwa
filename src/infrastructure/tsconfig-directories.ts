@@ -18,6 +18,30 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
   });
 }
 
+function resolveTsConfigFile(projectDir: string, projectPath: string | undefined): string {
+  if (projectPath === undefined) {
+    const configFile = ts.findConfigFile(
+      projectDir,
+      (file) => ts.sys.fileExists(file),
+      defaultRunnerConfig.tsConfigFileName
+    );
+
+    if (configFile === undefined) {
+      throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
+    }
+
+    return configFile;
+  }
+
+  const resolvedProjectPath = path.resolve(projectDir, projectPath);
+
+  if (ts.sys.directoryExists(resolvedProjectPath)) {
+    return path.join(resolvedProjectPath, defaultRunnerConfig.tsConfigFileName);
+  }
+
+  return resolvedProjectPath;
+}
+
 /**
  * Reads source and output directories through the TypeScript config parser.
  *
@@ -25,17 +49,11 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
  * normalization behavior aligned with TypeScript instead of duplicating
  * tsconfig rules manually.
  */
-export function readTsConfigDirectories(projectDir: string): TsConfigDirectories {
-  const configFile = ts.findConfigFile(
-    projectDir,
-    (file) => ts.sys.fileExists(file),
-    defaultRunnerConfig.tsConfigFileName
-  );
-
-  if (configFile === undefined) {
-    throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
-  }
-
+export function readTsConfigDirectories(
+  projectDir: string,
+  projectPath?: string
+): TsConfigDirectories {
+  const configFile = resolveTsConfigFile(projectDir, projectPath);
   const configResult = ts.readConfigFile(
     configFile,
     (file) => ts.sys.readFile(file)

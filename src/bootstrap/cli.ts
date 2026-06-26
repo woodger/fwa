@@ -16,11 +16,12 @@ type RunCliDependencies = {
 
 function renderHelp(): string {
   return [
-    'Usage: fwa [project-root]',
+    'Usage: fwa [project-root] [options]',
     '',
     'Options:',
-    '  -h, --help     Show help.',
-    '  -v, --version  Show version.',
+    '  -p, --project <path>  TypeScript config file or directory.',
+    '  -h, --help            Show help.',
+    '  -v, --version         Show version.',
     ''
   ].join('\n');
 }
@@ -65,24 +66,60 @@ export function runCli(
     return;
   }
 
-  const unknownOption = options.args.find((arg) => arg.startsWith('-'));
+  const projectArgs: string[] = [];
+  let tsConfigPath: string | undefined;
 
-  if (unknownOption !== undefined) {
-    dependencies.writeStderr(`Unknown option: ${unknownOption}\n`);
+  for (let index = 0; index < options.args.length; index += 1) {
+    const arg = options.args[index];
+
+    if (arg === undefined) {
+      continue;
+    }
+
+    if (arg === '--project' || arg === '-p') {
+      if (tsConfigPath !== undefined) {
+        dependencies.writeStderr('Option --project cannot be specified more than once.\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      const value = options.args[index + 1];
+
+      if (value === undefined || value.startsWith('-')) {
+        dependencies.writeStderr('Option --project expects a value.\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      tsConfigPath = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      dependencies.writeStderr(`Unknown option: ${arg}\n`);
+      dependencies.setExitCode(1);
+      return;
+    }
+
+    projectArgs.push(arg);
+  }
+
+  if (projectArgs.length > 1) {
+    dependencies.writeStderr(`Unexpected arguments: ${projectArgs.slice(1).join(' ')}\n`);
     dependencies.setExitCode(1);
     return;
   }
 
-  if (options.args.length > 1) {
-    dependencies.writeStderr(`Unexpected arguments: ${options.args.slice(1).join(' ')}\n`);
-    dependencies.setExitCode(1);
-    return;
-  }
-
-  const projectDir = options.args[0] ?? options.defaultProjectDir;
-
-  dependencies.runSuite({
+  const projectDir = projectArgs[0] ?? options.defaultProjectDir;
+  const suiteOptions: SuiteRunnerOptions = {
     projectDir,
     runnerFile: options.runnerFile
-  });
+  };
+
+  if (tsConfigPath !== undefined) {
+    suiteOptions.tsConfigPath = tsConfigPath;
+  }
+
+  dependencies.runSuite(suiteOptions);
 }

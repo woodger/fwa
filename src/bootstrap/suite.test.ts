@@ -39,4 +39,38 @@ describe('resolveSuiteOptions', () => {
     assert.strictEqual(options.distDir, path.join(projectDir, 'build'));
     assert.strictEqual(options.runnerFile, 'runner.js');
   });
+
+  test('resolves sourceDir and distDir from selected TypeScript project config', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'test-source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'test-source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.test.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'test-source',
+          outDir: 'test-build'
+        },
+        include: [
+          'test-source/**/*.ts'
+        ]
+      })
+    );
+
+    const options = resolveSuiteOptions({
+      projectDir,
+      tsConfigPath: 'tsconfig.test.json',
+      runnerFile: 'runner.js'
+    });
+
+    assert.strictEqual(options.projectDir, projectDir);
+    assert.strictEqual(options.sourceDir, path.join(projectDir, 'test-source'));
+    assert.strictEqual(options.distDir, path.join(projectDir, 'test-build'));
+    assert.strictEqual(options.runnerFile, 'runner.js');
+  });
 });

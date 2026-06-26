@@ -64,6 +64,14 @@ export type SuiteRunnerOptions = {
   projectDir: string;
 
   /**
+   * TypeScript project config file or directory.
+   *
+   * Mirrors `tsc --project`: accepts a path to a config file
+   * or to a directory containing tsconfig.json.
+   */
+  tsConfigPath?: string;
+
+  /**
    * Path to the runner file.
    *
    * Used to exclude the runner itself from the list of runnable tests
