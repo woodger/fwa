@@ -1,11 +1,17 @@
 import type { SuiteRunnerOptions } from '../application/run-suite';
 
+/**
+ * CLI input normalized by bin.ts before command parsing.
+ */
 type RunCliOptions = {
   args: readonly string[];
   defaultProjectDir: string;
   runnerFile: string;
 };
 
+/**
+ * Side effects injected into the parser to keep CLI decisions testable.
+ */
 type RunCliDependencies = {
   readVersion(): string;
   runSuite(options: SuiteRunnerOptions): void;
@@ -30,6 +36,8 @@ export function runCli(
   options: RunCliOptions,
   dependencies: RunCliDependencies
 ): void {
+  // No arguments means the runner uses the current process directory,
+  // which is passed from bin.ts as an explicit dependency.
   if (options.args.length === 0) {
     dependencies.runSuite({
       projectDir: options.defaultProjectDir,
@@ -38,6 +46,8 @@ export function runCli(
     return;
   }
 
+  // Help and version are informational commands. They are only accepted
+  // as standalone arguments so they cannot mask invalid runner input.
   if (options.args.length === 1) {
     const arg = options.args[0];
 
@@ -69,6 +79,8 @@ export function runCli(
   const projectArgs: string[] = [];
   let tsConfigPath: string | undefined;
 
+  // Keep parsing small and strict: one positional project root plus
+  // a TypeScript-style --project/-p option.
   for (let index = 0; index < options.args.length; index += 1) {
     const arg = options.args[index];
 
@@ -85,6 +97,7 @@ export function runCli(
 
       const value = options.args[index + 1];
 
+      // Match tsc's separate-argument form: --project <path> or -p <path>.
       if (value === undefined || value.startsWith('-')) {
         dependencies.writeStderr('Option --project expects a value.\n');
         dependencies.setExitCode(1);
@@ -105,6 +118,7 @@ export function runCli(
     projectArgs.push(arg);
   }
 
+  // After options are removed, at most one positional argument can remain.
   if (projectArgs.length > 1) {
     dependencies.writeStderr(`Unexpected arguments: ${projectArgs.slice(1).join(' ')}\n`);
     dependencies.setExitCode(1);
