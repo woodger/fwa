@@ -165,7 +165,10 @@ export function assertDirectory(dir: string, name: string, projectDir: string): 
 }
 
 /**
- * Removes compiled tests for which source TS files no longer exist.
+ * Checks compiled tests before execution.
+ *
+ * Compiled tests without source are removed only when clear is enabled.
+ * Otherwise the run fails before stale JavaScript can be executed.
  *
  * Additionally checks that an existing compiled test is not older than its source test.
  * This protects against a false-positive run of old compiled JS tests after
@@ -177,6 +180,7 @@ export function removeCompiledTestsWithoutSource(
 ): string[] {
   const runnableFiles: string[] = [];
   const removedFiles: string[] = [];
+  const orphanFiles: string[] = [];
   const outdatedFiles: OutdatedCompiledTest[] = [];
   const log = options.log ?? ((message: string) => console.warn(message));
 
@@ -191,8 +195,15 @@ export function removeCompiledTestsWithoutSource(
     const sourceStat = readOptionalFileStat(sourceFile);
 
     if (sourceStat === undefined) {
-      fs.unlinkSync(file);
-      removedFiles.push(toProjectPath(file, options.projectDir));
+      const projectPath = toProjectPath(file, options.projectDir);
+
+      if (options.clear) {
+        fs.unlinkSync(file);
+        removedFiles.push(projectPath);
+        continue;
+      }
+
+      orphanFiles.push(projectPath);
       continue;
     }
 
@@ -211,6 +222,19 @@ export function removeCompiledTestsWithoutSource(
       [
         'Removed stale compiled tests without source:',
         ...removedFiles
+          .sort((left, right) => left.localeCompare(right))
+          .map((file) => `- ${file}`)
+      ].join('\n')
+    );
+  }
+
+  if (orphanFiles.length) {
+    throw new Error(
+      [
+        'Stale compiled tests without source found.',
+        '',
+        'Run with --clear to remove them:',
+        ...orphanFiles
           .sort((left, right) => left.localeCompare(right))
           .map((file) => `- ${file}`)
       ].join('\n')

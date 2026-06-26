@@ -43,6 +43,11 @@ export type CompiledTestCleanupOptions = {
   projectDir: string;
 
   /**
+   * Allows removing compiled tests whose source files no longer exist.
+   */
+  clear: boolean;
+
+  /**
    * Optional diagnostic message output.
    *
    * The property must be absent when no custom logger is passed.
@@ -78,6 +83,13 @@ export type SuiteRunnerOptions = {
    * when it is also located inside dist.
    */
   runnerFile?: string;
+
+  /**
+   * Remove stale compiled tests whose source files no longer exist.
+   *
+   * Uses the project default when omitted.
+   */
+  clear?: boolean;
 
   /**
    * Native Node.js test runner isolation mode.
@@ -124,7 +136,8 @@ export function runSuiteUseCase(
   const cleanupOptions: CompiledTestCleanupOptions = {
     distDir: options.distDir,
     sourceDir: options.sourceDir,
-    projectDir: options.projectDir
+    projectDir: options.projectDir,
+    clear: options.clear
   };
 
   if (options.log !== undefined) {

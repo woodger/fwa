@@ -11,7 +11,8 @@ independent from shell glob behavior.
 
 - reads `rootDir` and `outDir` from TypeScript config;
 - recursively finds compiled `*.test.js` and `*.spec.js` files;
-- removes compiled tests whose source files no longer exist;
+- blocks compiled tests whose source files no longer exist;
+- removes those files only when `--clear` is used;
 - fails when source tests are newer than compiled tests;
 - passes the final file list to native `node:test`.
 
@@ -142,7 +143,16 @@ src/feature/example.test.ts
 dist/feature/example.test.js
 ```
 
-If the source test no longer exists, the compiled test is removed:
+If the source test no longer exists, execution fails without deleting files:
+
+```text
+Stale compiled tests without source found.
+
+Run with --clear to remove them:
+- dist/feature/old.test.js
+```
+
+With `--clear`, the compiled test is removed:
 
 ```text
 Removed stale compiled tests without source:
@@ -168,6 +178,7 @@ Usage: fwa [project-root] [options]
 
 Options:
   -p, --project <path>     TypeScript config file or directory.
+  --clear                  Remove stale compiled tests without source.
   -i, --isolation <mode>   Test isolation: process or none. Default: process.
   -h, --help               Show help.
   -v, --version            Show version.
@@ -179,6 +190,7 @@ Rules:
 - at most one positional project root is allowed;
 - `--project` can be used once;
 - `--project` expects a separate value: `--project tsconfig.test.json`;
+- `--clear` removes stale compiled tests whose source files no longer exist;
 - `--isolation` can be `process` or `none`;
 - `--source-dir` and `--dist-dir` are not supported.
 
@@ -202,6 +214,17 @@ import { runSuite } from 'fwa';
 runSuite({
   projectDir: process.cwd(),
   tsConfigPath: 'tsconfig.test.json'
+});
+```
+
+With explicit stale compiled test cleanup:
+
+```ts
+import { runSuite } from 'fwa';
+
+runSuite({
+  projectDir: process.cwd(),
+  clear: true
 });
 ```
 

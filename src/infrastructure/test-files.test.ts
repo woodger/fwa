@@ -134,6 +134,7 @@ describe('test-files', () => {
           distDir,
           sourceDir,
           projectDir,
+          clear: false,
           log: (message) => {
             messages.push(message);
           }
@@ -145,7 +146,62 @@ describe('test-files', () => {
       assert.deepStrictEqual(messages, []);
     });
 
-    test('removes compiled test when matching source test does not exist', (t) => {
+    test('throws when compiled test has no source and clear is disabled', (t) => {
+      const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+      const distDir = path.join(projectDir, 'dist');
+      const sourceDir = path.join(projectDir, 'src');
+
+      t.after(() => {
+        fs.rmSync(projectDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(distDir, { recursive: true });
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      const compiledFile = path.join(distDir, 'orphan.test.js');
+      fs.writeFileSync(compiledFile, '');
+
+      const messages: string[] = [];
+
+      assert.throws(
+        () => {
+          removeCompiledTestsWithoutSource(
+            [compiledFile],
+            {
+              distDir,
+              sourceDir,
+              projectDir,
+              clear: false,
+              log: (message) => {
+                messages.push(message);
+              }
+            }
+          );
+        },
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.match(
+            error.message,
+            /Stale compiled tests without source found\./
+          );
+          assert.match(
+            error.message,
+            /Run with --clear to remove them:/
+          );
+          assert.match(
+            error.message,
+            /- dist\/orphan\.test\.js/
+          );
+
+          return true;
+        }
+      );
+
+      assert.strictEqual(fs.existsSync(compiledFile), true);
+      assert.deepStrictEqual(messages, []);
+    });
+
+    test('removes compiled test when matching source test does not exist and clear is enabled', (t) => {
       const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
       const distDir = path.join(projectDir, 'dist');
       const sourceDir = path.join(projectDir, 'src');
@@ -168,6 +224,7 @@ describe('test-files', () => {
           distDir,
           sourceDir,
           projectDir,
+          clear: true,
           log: (message) => {
             messages.push(message);
           }
@@ -224,6 +281,7 @@ describe('test-files', () => {
               distDir,
               sourceDir,
               projectDir,
+              clear: false,
               log: (message) => {
                 ignoredMessages.push(message);
               }
@@ -297,6 +355,7 @@ describe('test-files', () => {
           distDir,
           sourceDir,
           projectDir,
+          clear: false,
           log: (message) => {
             ignoredMessages.push(message);
           }
@@ -345,6 +404,7 @@ describe('test-files', () => {
           distDir,
           sourceDir,
           projectDir,
+          clear: false,
           log: (message) => {
             messages.push(message);
           }

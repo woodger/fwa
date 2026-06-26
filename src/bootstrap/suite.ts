@@ -42,6 +42,7 @@ export function resolveSuiteOptions(
       tsConfigDirectories.sourceDir
     ),
     runnerFile: options.runnerFile ?? __filename,
+    clear: options.clear ?? defaultRunnerConfig.clearStaleCompiledTests,
     isolation: options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation
   };
 

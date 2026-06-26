@@ -39,6 +39,7 @@ describe('runCli', () => {
         '',
         'Options:',
         '  -p, --project <path>     TypeScript config file or directory.',
+        '  --clear                  Remove stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
@@ -82,6 +83,7 @@ describe('runCli', () => {
         '',
         'Options:',
         '  -p, --project <path>     TypeScript config file or directory.',
+        '  --clear                  Remove stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
@@ -284,6 +286,36 @@ describe('runCli', () => {
     assert.strictEqual(runnerTsConfigPath, 'tsconfig.test.json');
   });
 
+  test('runs suite with clear mode', () => {
+    let runnerClear: boolean | undefined;
+
+    runCli({
+      args: [
+        '--clear'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerClear = options.clear;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerClear, true);
+  });
+
   test('runs suite with test isolation', () => {
     let runnerIsolation: string | undefined;
 
@@ -483,6 +515,41 @@ describe('runCli', () => {
     assert.strictEqual(suiteWasRun, false);
     assert.strictEqual(exitCode, 1);
     assert.deepStrictEqual(stderr, ['Option --isolation cannot be specified more than once.\n']);
+  });
+
+  test('rejects duplicate clear option', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '--clear',
+        '--clear'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --clear cannot be specified more than once.\n']);
   });
 
   test('rejects unknown test isolation value', () => {

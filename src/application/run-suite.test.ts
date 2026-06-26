@@ -45,6 +45,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
+        clear: false,
         isolation: 'process'
       },
       dependencies
@@ -103,6 +104,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
+        clear: true,
         isolation: 'process'
       },
       dependencies
@@ -111,7 +113,8 @@ describe('runSuiteUseCase', () => {
     assert.deepStrictEqual(cleanupOptions, {
       distDir: '/project/dist',
       sourceDir: '/project/src',
-      projectDir: '/project'
+      projectDir: '/project',
+      clear: true
     });
   });
 
@@ -160,6 +163,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
+        clear: false,
         isolation: 'process'
       },
       dependencies
@@ -209,6 +213,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
+        clear: false,
         isolation: 'process'
       },
       dependencies
@@ -254,6 +259,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
+        clear: false,
         isolation: 'none'
       },
       dependencies
