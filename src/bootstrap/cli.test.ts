@@ -11,6 +11,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--help'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
@@ -34,7 +35,7 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa <project-root>',
+        'Usage: fwa [project-root]',
         '',
         'Options:',
         '  -h, --help     Show help.',
@@ -51,6 +52,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['-h'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
@@ -74,7 +76,7 @@ describe('runCli', () => {
     assert.strictEqual(exitCode, 0);
     assert.deepStrictEqual(stdout, [
       [
-        'Usage: fwa <project-root>',
+        'Usage: fwa [project-root]',
         '',
         'Options:',
         '  -h, --help     Show help.',
@@ -91,6 +93,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--version'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => '2.0.0-alpha',
@@ -120,6 +123,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['-v'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => '2.0.0-alpha',
@@ -148,6 +152,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['/workspace/project'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
@@ -172,35 +177,35 @@ describe('runCli', () => {
     assert.strictEqual(runnerFile, '/project/dist/bin.js');
   });
 
-  test('rejects missing project root', () => {
-    const stderr: string[] = [];
-    let exitCode: number | undefined;
-    let suiteWasRun = false;
+  test('runs suite with default project root', () => {
+    let runnerProjectDir: string | undefined;
+    let runnerFile: string | undefined;
 
     runCli({
       args: [],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
       },
-      runSuite: () => {
-        suiteWasRun = true;
+      runSuite: (options) => {
+        runnerProjectDir = options.projectDir;
+        runnerFile = options.runnerFile;
       },
       setExitCode: (code) => {
-        exitCode = code;
+        assert.fail(`Unexpected exit code: ${String(code)}`);
       },
       writeStderr: (message) => {
-        stderr.push(message);
+        assert.fail(message);
       },
       writeStdout: (message) => {
         assert.fail(message);
       }
     });
 
-    assert.strictEqual(suiteWasRun, false);
-    assert.strictEqual(exitCode, 1);
-    assert.deepStrictEqual(stderr, ['Missing project root.\n']);
+    assert.strictEqual(runnerProjectDir, '/project');
+    assert.strictEqual(runnerFile, '/project/dist/bin.js');
   });
 
   test('rejects source directory option', () => {
@@ -210,6 +215,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--source-dir'],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
@@ -244,6 +250,7 @@ describe('runCli', () => {
         '/workspace/one',
         '/workspace/two'
       ],
+      defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {

@@ -2,6 +2,7 @@ import type { SuiteRunnerOptions } from '../application/run-suite';
 
 type RunCliOptions = {
   args: readonly string[];
+  defaultProjectDir: string;
   runnerFile: string;
 };
 
@@ -15,7 +16,7 @@ type RunCliDependencies = {
 
 function renderHelp(): string {
   return [
-    'Usage: fwa <project-root>',
+    'Usage: fwa [project-root]',
     '',
     'Options:',
     '  -h, --help     Show help.',
@@ -29,8 +30,10 @@ export function runCli(
   dependencies: RunCliDependencies
 ): void {
   if (options.args.length === 0) {
-    dependencies.writeStderr('Missing project root.\n');
-    dependencies.setExitCode(1);
+    dependencies.runSuite({
+      projectDir: options.defaultProjectDir,
+      runnerFile: options.runnerFile
+    });
     return;
   }
 
@@ -76,13 +79,7 @@ export function runCli(
     return;
   }
 
-  const [projectDir] = options.args;
-
-  if (projectDir === undefined) {
-    dependencies.writeStderr('Missing project root.\n');
-    dependencies.setExitCode(1);
-    return;
-  }
+  const projectDir = options.args[0] ?? options.defaultProjectDir;
 
   dependencies.runSuite({
     projectDir,

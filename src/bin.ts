@@ -20,6 +20,7 @@ function readPackageVersion(packageFile: string): string {
 
 runCli({
   args: process.argv.slice(2),
+  defaultProjectDir: process.cwd(),
   runnerFile: __filename
 }, {
   readVersion: () => readPackageVersion(path.resolve(__dirname, '..', 'package.json')),

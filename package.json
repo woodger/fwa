@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node dist/bin.js .",
+    "test": "node dist/bin.js",
     "lint": "eslint src eslint.config.mjs"
   },
   "engines": {
