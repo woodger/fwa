@@ -1,152 +1,68 @@
-# Compiled Suite Runner
+# fwa
 
-The module runs compiled TypeScript tests from `dist` through the native Node.js test runner.
+Compiled TypeScript test runner for Node.js.
 
-The runner solves two practical problems:
+`fwa` runs JavaScript tests emitted by TypeScript, while keeping test discovery
+independent from shell glob behavior.
 
-1. Reliably finds nested `*.test.js` and `*.spec.js` files in `dist` without depending on shell glob behavior.
-2. Protects the project from running stale compiled tests that remain after source `*.test.ts` or `*.spec.ts` files were deleted or changed.
+## What It Does
 
-## Purpose
+`fwa`:
 
-In a TypeScript project, tests are written in `src`:
+- reads `rootDir` and `outDir` from TypeScript config;
+- recursively finds compiled `*.test.js` and `*.spec.js` files;
+- removes compiled tests whose source files no longer exist;
+- fails when source tests are newer than compiled tests;
+- passes the final file list to native `node:test`.
 
-```
-src/feature/sample.test.ts
-src/feature/sample.spec.ts
-```
+It does not replace `node:test`. It prepares a safe file list before delegating
+execution to the native Node.js test runner.
 
-After build, compiled files appear:
+## Requirements
 
-```
-dist/feature/sample.test.js
-dist/feature/sample.spec.js
-```
+- Node.js `>=20.19.0`
+- TypeScript project with `compilerOptions.outDir`
+- compiled tests must keep the same relative path as source tests
 
-If tests are run directly through shell globs:
+`compilerOptions.rootDir` is optional. When it is not configured, `fwa` uses
+TypeScript's parsed default.
 
-```sh
-node --test dist/**/*.test.js dist/**/*.spec.js
-```
-
-the result may depend on the shell that executes the command.
-
-In npm scripts, a command usually goes through a shell. Not every shell handles `**` in the same way, and in some cases `dist/**/*.test.js` or `dist/**/*.spec.js` may find only tests at one nesting level while missing deeper files.
-
-For example, these files may be found:
-
-```
-dist/feature/sample.test.js
-dist/feature/sample.spec.js
-```
-
-but these files may be missed:
-
-```
-dist/feature/nested/sample.test.js
-dist/feature/nested/sample.spec.js
-dist/feature/nested/deep/sample.test.js
-```
-
-For this reason, the project uses a separate suite entrypoint:
-
-```json
-{
-  "scripts": {
-    "test": "fwa"
-  }
-}
-```
-
-`suite.js` recursively walks `dist` itself, collects all `*.test.js` and `*.spec.js` files at any depth, and passes the final file list to native `node:test`.
-
-## Difference From `node --test`
-
-This runner does not replace the native Node.js test runner.
-
-It uses `node:test` internally, but takes responsibility for preparing the file list before execution.
-
-Regular execution:
+## Installation
 
 ```sh
-node --test dist/**/*.test.js dist/**/*.spec.js
-```
-
-relies on glob pattern handling outside Node.js or inside Node.js. In practice, this can be non-obvious and can depend on the environment, shell, and command form.
-
-Execution through the suite:
-
-```sh
-node dist/suite.js
-```
-
-does not depend on shell glob behavior.
-
-The runner performs its own recursive walk of `dist`, excludes the suite runner file itself from the test list, checks freshness of compiled files, and only then runs tests through `node:test`.
-
-In other words:
-
-```
-node:test is responsible for executing tests.
-suite.js is responsible for safely selecting test files from dist.
-```
-
-## What The Runner Does
-
-Before running tests, the runner performs a preflight check:
-
-1. Recursively finds all `*.test.js` and `*.spec.js` files in `dist`.
-2. Excludes the runner file itself from the list.
-3. Restores the expected source path for each compiled JS test.
-4. Removes a compiled test if the corresponding source test no longer exists.
-5. Aborts execution if the source test is newer than the compiled test.
-6. Passes the remaining files to native `node:test`.
-
-## Example Project Structure
-
-```
-project/
-|-- src/
-|   |-- suite.ts
-|   `-- feature/
-|       |-- sample.test.ts
-|       |-- sample.spec.ts
-|       `-- nested/
-|           `-- deep.test.ts
-|-- dist/
-|   |-- suite.js
-|   `-- feature/
-|       |-- sample.test.js
-|       |-- sample.spec.js
-|       `-- nested/
-|           `-- deep.test.js
-|-- package.json
-`-- tsconfig.json
+npm install --save-dev fwa
 ```
 
 ## Usage
 
-After installing the package, the standard run command is:
+Run tests for the current working directory:
 
 ```sh
 fwa
 ```
 
-The `fwa` command runs project tests from the current working directory:
-
-```
-distDir = <cwd>/dist
-sourceDir = <cwd>/src
-projectDir = <cwd>
-```
-
-Direct execution of the compiled entrypoint inside the project itself is also supported:
+Run tests for another project root:
 
 ```sh
-node dist/suite.js
+fwa ./packages/example
 ```
 
-Recommended script in `package.json`:
+Use a specific TypeScript project config:
+
+```sh
+fwa --project tsconfig.test.json
+fwa -p tsconfig.test.json
+fwa ./packages/example --project tsconfig.test.json
+```
+
+`--project` follows `tsc --project` semantics: it accepts a path to a
+TypeScript config file or to a directory containing `tsconfig.json`.
+
+The `--project <path>` value is resolved relative to the selected project root.
+
+## package.json
+
+Recommended script:
 
 ```json
 {
@@ -157,284 +73,164 @@ Recommended script in `package.json`:
 }
 ```
 
-The runner does not require full deletion of `dist` before running tests.
+When `fwa` is used from another npm package, prefer the `fwa` command instead
+of calling files inside `dist` directly.
 
-It removes only compiled test files for which the corresponding source test file no longer exists.
+## TypeScript Config
+
+By default, `fwa` reads:
+
+```text
+<project-root>/tsconfig.json
+```
+
+It uses the TypeScript config parser, so `extends`, relative compiler options,
+and config diagnostics follow TypeScript behavior.
+
+`compilerOptions.outDir` is required because `fwa` runs compiled JavaScript
+tests. Without `outDir`, compiled output location is ambiguous for this runner.
+
+`compilerOptions.rootDir` is optional. If it is omitted, the TypeScript parser
+provides the default used by `fwa`.
+
+## Expected Layout
+
+The relative path from `rootDir` to a source test must match the relative path
+from `outDir` to the compiled test.
+
+Example:
+
+```text
+src/feature/example.test.ts
+dist/feature/example.test.js
+
+src/feature/example.spec.ts
+dist/feature/example.spec.js
+```
+
+Both `.test` and `.spec` files are supported:
+
+```text
+source:   *.test.ts, *.spec.ts
+compiled: *.test.js, *.spec.js
+```
 
 ## Why Not Shell Globs
 
-A command like:
+A command like this may depend on shell behavior:
 
 ```sh
 node --test dist/**/*.test.js dist/**/*.spec.js
 ```
 
-looks shorter, but it has two drawbacks.
+Different shells and environments can expand `**` differently. In npm scripts,
+that makes recursive test discovery less predictable across local machines,
+containers, and CI.
 
-First, `**` may be processed by the shell before Node.js starts. In that case, Node.js receives an already prepared file list, not the original glob pattern.
+`fwa` avoids this by walking `outDir` itself and passing explicit file paths to
+`node:test`.
 
-Second, behavior may differ between environments. A local machine, CI, Docker container, and different shells may handle this glob differently.
+## Stale Compiled Tests
 
-The runner avoids this ambiguity:
+`fwa` checks every discovered compiled test against its source test.
 
-```
-dist is walked through fs.readdirSync()
-the test file list is formed explicitly
-node:test receives already prepared file paths
-```
+If the source test exists and the compiled file is not older, the compiled test
+is runnable:
 
-This makes test execution stable and predictable.
-
-## Protection From Stale Compiled Tests
-
-The runner assumes that `src` and `dist` have the same relative structure.
-
-For example:
-
-```
-src/feature/sample.test.ts
-dist/feature/sample.test.js
-src/feature/sample.spec.ts
-dist/feature/sample.spec.js
+```text
+src/feature/example.test.ts
+dist/feature/example.test.js
 ```
 
-For each discovered compiled test, the runner checks the corresponding source test.
+If the source test no longer exists, the compiled test is removed:
 
-### Source Test Exists
-
-If the source test exists and the compiled test is not older than it, the file is considered runnable:
-
-```
-src/feature/sample.test.ts
-dist/feature/sample.test.js
-```
-
-### Source Test Was Deleted
-
-If the source test no longer exists, the compiled test is considered a stale file and is removed:
-
-```
-dist/feature/old.test.js
-```
-
-Diagnostic:
-
-```
+```text
 Removed stale compiled tests without source:
 - dist/feature/old.test.js
 ```
 
-### Source Test Is Newer Than Compiled Test
+If the source test is newer than the compiled test, execution fails:
 
-If the source test was changed after the compiled test, execution aborts with an error:
-
-```
+```text
 Compiled tests are older than source tests.
 
 Rebuild before npm test:
-- dist/feature/sample.test.js (source: src/feature/sample.test.ts)
+- dist/feature/example.test.js (source: src/feature/example.test.ts)
 ```
 
-This means that `dist` does not match the current state of `src`, and the project must be rebuilt.
+This prevents old compiled JavaScript tests from passing after the TypeScript
+source changed.
+
+## CLI
+
+```text
+Usage: fwa [project-root] [options]
+
+Options:
+  -p, --project <path>  TypeScript config file or directory.
+  -h, --help            Show help.
+  -v, --version         Show version.
+```
+
+Rules:
+
+- no positional project root means current working directory;
+- at most one positional project root is allowed;
+- `--project` can be used once;
+- `--project` expects a separate value: `--project tsconfig.test.json`;
+- `--source-dir` and `--dist-dir` are not supported.
 
 ## Public API
 
-### `collectTestFiles(dir, extensions)`
-
-Recursively collects test files with the specified extension or extensions.
+The documented programmatic API is the package root import:
 
 ```ts
-const files = collectTestFiles('dist', ['.test.js', '.spec.js']);
-```
+import { runSuite } from 'fwa';
 
-The function is used for explicit directory traversal without shell glob.
-
-Supported extensions:
-
-```ts
-type TestExtension = '.test.js' | '.test.ts' | '.spec.js' | '.spec.ts';
-```
-
-### `removeCompiledTestsWithoutSource(testFiles, options)`
-
-Checks compiled test files before execution.
-
-```ts
-const runnableFiles = removeCompiledTestsWithoutSource(testFiles, {
-  distDir: 'dist',
-  sourceDir: 'src',
+runSuite({
   projectDir: process.cwd()
 });
 ```
 
-The function returns only compiled test files that can be executed.
-
-If the source test is missing, the compiled test is removed.
-
-If the source test is newer than the compiled test, the function throws an error.
-
-### `runSuite(options?)`
-
-Runs the full check and test execution cycle.
+With a custom TypeScript project config:
 
 ```ts
-runSuite();
-```
+import { runSuite } from 'fwa';
 
-With parameters:
-
-```ts
 runSuite({
-  distDir: path.resolve(__dirname),
-  projectDir: path.resolve(__dirname, '..'),
-  sourceDir: path.resolve(__dirname, '../src'),
-  runnerFile: __filename
+  projectDir: process.cwd(),
+  tsConfigPath: 'tsconfig.test.json'
 });
 ```
 
-Usually parameters are not needed if the runner is located in `src/suite.ts` and lands in `dist/suite.js` after build.
-
-## Options
-
-### `distDir`
-
-Directory with compiled JS files.
-
-Usually this is the directory of the current compiled runner:
-
-```ts
-const distDir = path.resolve(__dirname);
-```
-
-### `sourceDir`
-
-Directory with source TS files.
-
-Usually:
-
-```ts
-const sourceDir = path.join(projectDir, 'src');
-```
-
-### `projectDir`
-
-Project root.
-
-Used to format paths in diagnostics:
-
-```
-dist/feature/sample.test.js
-src/feature/sample.test.ts
-dist/feature/sample.spec.js
-src/feature/sample.spec.ts
-```
-
-Messages do not use absolute paths so output is identical locally, in a container, and in CI.
-
-### `runnerFile`
-
-Path to the runner file.
-
-Needed so the runner can exclude itself from the list of runnable tests.
-
-### `log`
-
-Optional function for diagnostic messages.
-
-```ts
-runSuite({
-  log: (message) => {
-    console.warn(message);
-  }
-});
-```
-
-This is convenient for tests where diagnostic output must be checked without replacing `console.warn`.
+Only `runSuite` and the exported TypeScript types from the package root should
+be treated as public API. Internal files under `dist` are implementation
+details.
 
 ## Exit Code Behavior
 
-`runSuite()` does not call `process.exit()` directly.
+`fwa` does not call `process.exit()` directly.
 
-On execution failure or when no tests are found, the runner sets:
+On execution failure, or when no runnable tests are found, it sets:
 
 ```ts
 process.exitCode = 1;
 ```
 
-This approach is safer:
+This keeps process lifecycle under Node.js control and makes the runner easier
+to test.
 
-* the process does not terminate in the middle of a test;
-* the module is easier to cover with unit tests;
-* calling code keeps control over the process lifecycle.
+## When It Is Useful
 
-## Limitations
+`fwa` is useful when a project:
 
-The runner is designed for a standard TypeScript build where the relative structure of `src` and `dist` matches.
+- writes tests in TypeScript;
+- runs compiled tests from `outDir`;
+- has nested test files;
+- wants deterministic recursive test discovery;
+- does not want shell-specific glob behavior;
+- wants protection from stale compiled tests;
+- uses native `node:test`.
 
-Supported case:
-
-```
-src/a/b/example.test.ts
-dist/a/b/example.test.js
-src/a/b/example.spec.ts
-dist/a/b/example.spec.js
-```
-
-If the build changes the directory structure, the runner cannot correctly restore the source path from the compiled path without additional configuration.
-
-## When The Runner Is Useful
-
-The runner is useful when a project:
-
-* writes tests in TypeScript;
-* runs compiled tests from `dist`;
-* does not want to rely on shell globs such as `dist/**/*.test.js` and `dist/**/*.spec.js`;
-* has nested test files;
-* does not fully clean `dist` before each run;
-* wants protection from stale compiled tests;
-* uses the native Node.js test runner.
-
-## When The Runner Is Not Needed
-
-The runner is usually not needed if a project runs TypeScript tests directly without an intermediate `dist`.
-
-The runner may also be excessive if `dist` is fully deleted before every build and then created again, and test execution does not depend on shell glob.
-
-## Testing The Runner
-
-For runner unit tests, it is convenient to create a temporary project structure:
-
-```ts
-const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-runner-'));
-const distDir = path.join(projectDir, 'dist');
-const sourceDir = path.join(projectDir, 'src');
-```
-
-Cleanup is better done inside each test through `t.after()`:
-
-```ts
-test('removes stale compiled test', (t) => {
-  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-runner-'));
-
-  t.after(() => {
-    fs.rmSync(projectDir, { recursive: true, force: true });
-  });
-
-  // test body
-});
-```
-
-This keeps each test independent and avoids dependence on shared mutable setup.
-
-## Summary
-
-`suite.js` is not a separate test framework.
-
-It is a small entrypoint on top of native `node:test` that makes running compiled TypeScript tests more reliable:
-
-```
-without shell glob
-with recursive dist traversal
-with protection from stale compiled tests
-with an explicit file list for node:test
-```
+It is usually not needed when tests are executed directly from TypeScript
+without compiled JavaScript output.
