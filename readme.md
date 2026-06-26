@@ -1,5 +1,10 @@
 # fwa
 
+[![npm version](https://img.shields.io/npm/v/fwa.svg)](https://www.npmjs.com/package/fwa)
+[![node](https://img.shields.io/node/v/fwa.svg)](https://www.npmjs.com/package/fwa)
+[![types](https://img.shields.io/npm/types/fwa.svg)](https://www.npmjs.com/package/fwa)
+[![license](https://img.shields.io/npm/l/fwa.svg)](LICENSE)
+
 Compiled TypeScript test runner for Node.js.
 
 `fwa` runs JavaScript tests emitted by TypeScript, while keeping test discovery
