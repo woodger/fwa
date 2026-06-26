@@ -28,7 +28,7 @@ function renderHelp(): string {
     '',
     'Options:',
     '  -p, --project <path>     TypeScript config file or directory.',
-    '  --clear                  Remove stale compiled tests without source.',
+    '  --prune                  Prune stale compiled tests without source.',
     `  -i, --isolation <mode>   Test isolation: process or none. Default: ${defaultRunnerConfig.nodeTest.defaultIsolation}.`,
     '  -h, --help               Show help.',
     '  -v, --version            Show version.',
@@ -86,7 +86,7 @@ export function runCli(
 
   const projectArgs: string[] = [];
   let tsConfigPath: string | undefined;
-  let clear: boolean | undefined;
+  let prune: boolean | undefined;
   let isolation: TestIsolation | undefined;
 
   // Keep parsing small and strict: one positional project root plus
@@ -119,14 +119,14 @@ export function runCli(
       continue;
     }
 
-    if (arg === '--clear') {
-      if (clear !== undefined) {
-        dependencies.writeStderr('Option --clear cannot be specified more than once.\n');
+    if (arg === '--prune') {
+      if (prune !== undefined) {
+        dependencies.writeStderr('Option --prune cannot be specified more than once.\n');
         dependencies.setExitCode(1);
         return;
       }
 
-      clear = true;
+      prune = true;
       continue;
     }
 
@@ -182,8 +182,8 @@ export function runCli(
     suiteOptions.tsConfigPath = tsConfigPath;
   }
 
-  if (clear !== undefined) {
-    suiteOptions.clear = clear;
+  if (prune !== undefined) {
+    suiteOptions.prune = prune;
   }
 
   if (isolation !== undefined) {

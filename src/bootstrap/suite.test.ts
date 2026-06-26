@@ -38,10 +38,10 @@ describe('resolveSuiteOptions', () => {
     assert.strictEqual(options.sourceDir, path.join(projectDir, 'source'));
     assert.strictEqual(options.distDir, path.join(projectDir, 'build'));
     assert.strictEqual(options.runnerFile, 'runner.js');
-    assert.strictEqual(options.clear, false);
+    assert.strictEqual(options.prune, false);
   });
 
-  test('uses selected clear mode', (t) => {
+  test('uses selected prune mode', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
@@ -65,10 +65,10 @@ describe('resolveSuiteOptions', () => {
 
     const options = resolveSuiteOptions({
       projectDir,
-      clear: true
+      prune: true
     });
 
-    assert.strictEqual(options.clear, true);
+    assert.strictEqual(options.prune, true);
   });
 
   test('uses default test isolation', (t) => {

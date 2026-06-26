@@ -10,8 +10,8 @@ import {
 import { runNodeTestFiles } from '../infrastructure/node-test';
 import {
   assertDirectory,
-  collectTestFiles,
-  removeCompiledTestsWithoutSource
+  checkCompiledTests,
+  collectTestFiles
 } from '../infrastructure/test-files';
 import { readTsConfigDirectories } from '../infrastructure/tsconfig-directories';
 import { toProjectPath } from '../infrastructure/project-path';
@@ -42,7 +42,7 @@ export function resolveSuiteOptions(
       tsConfigDirectories.sourceDir
     ),
     runnerFile: options.runnerFile ?? __filename,
-    clear: options.clear ?? defaultRunnerConfig.clearStaleCompiledTests,
+    prune: options.prune ?? defaultRunnerConfig.pruneStaleCompiledTests,
     isolation: options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation
   };
 
@@ -59,7 +59,7 @@ export function runSuite(options: SuiteRunnerOptions): void {
     {
       assertDirectory,
       collectTestFiles,
-      removeCompiledTestsWithoutSource,
+      checkCompiledTests,
       runTestFiles: runNodeTestFiles,
       resolvePath: (file) => path.resolve(file),
       setExitCode: (code) => {

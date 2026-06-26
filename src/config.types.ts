@@ -40,6 +40,6 @@ export type NodeTestConfig = {
 export type RunnerConfig = {
   testFileExtensions: readonly TestFileExtensionPair[];
   tsConfigFileName: string;
-  clearStaleCompiledTests: boolean;
+  pruneStaleCompiledTests: boolean;
   nodeTest: NodeTestConfig;
 };

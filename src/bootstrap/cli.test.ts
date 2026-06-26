@@ -39,7 +39,7 @@ describe('runCli', () => {
         '',
         'Options:',
         '  -p, --project <path>     TypeScript config file or directory.',
-        '  --clear                  Remove stale compiled tests without source.',
+        '  --prune                  Prune stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
@@ -83,7 +83,7 @@ describe('runCli', () => {
         '',
         'Options:',
         '  -p, --project <path>     TypeScript config file or directory.',
-        '  --clear                  Remove stale compiled tests without source.',
+        '  --prune                  Prune stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
@@ -286,12 +286,12 @@ describe('runCli', () => {
     assert.strictEqual(runnerTsConfigPath, 'tsconfig.test.json');
   });
 
-  test('runs suite with clear mode', () => {
-    let runnerClear: boolean | undefined;
+  test('runs suite with prune mode', () => {
+    let runnerPrune: boolean | undefined;
 
     runCli({
       args: [
-        '--clear'
+        '--prune'
       ],
       defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
@@ -300,7 +300,7 @@ describe('runCli', () => {
         assert.fail('Unexpected version read');
       },
       runSuite: (options) => {
-        runnerClear = options.clear;
+        runnerPrune = options.prune;
       },
       setExitCode: (code) => {
         assert.fail(`Unexpected exit code: ${String(code)}`);
@@ -313,7 +313,7 @@ describe('runCli', () => {
       }
     });
 
-    assert.strictEqual(runnerClear, true);
+    assert.strictEqual(runnerPrune, true);
   });
 
   test('runs suite with test isolation', () => {
@@ -517,15 +517,15 @@ describe('runCli', () => {
     assert.deepStrictEqual(stderr, ['Option --isolation cannot be specified more than once.\n']);
   });
 
-  test('rejects duplicate clear option', () => {
+  test('rejects duplicate prune option', () => {
     const stderr: string[] = [];
     let exitCode: number | undefined;
     let suiteWasRun = false;
 
     runCli({
       args: [
-        '--clear',
-        '--clear'
+        '--prune',
+        '--prune'
       ],
       defaultProjectDir: '/project',
       runnerFile: '/project/dist/bin.js'
@@ -549,7 +549,7 @@ describe('runCli', () => {
 
     assert.strictEqual(suiteWasRun, false);
     assert.strictEqual(exitCode, 1);
-    assert.deepStrictEqual(stderr, ['Option --clear cannot be specified more than once.\n']);
+    assert.deepStrictEqual(stderr, ['Option --prune cannot be specified more than once.\n']);
   });
 
   test('rejects unknown test isolation value', () => {

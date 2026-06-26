@@ -12,7 +12,7 @@ export const defaultRunnerConfig = {
     }
   ],
   tsConfigFileName: 'tsconfig.json',
-  clearStaleCompiledTests: false,
+  pruneStaleCompiledTests: false,
   nodeTest: {
     concurrency: true,
     defaultIsolation: 'process'

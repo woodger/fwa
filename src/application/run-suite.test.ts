@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import {
   runSuiteUseCase,
-  type CompiledTestCleanupOptions,
+  type CompiledTestCheckOptions,
   type RunSuiteUseCaseDependencies
 } from './run-suite';
 
@@ -21,7 +21,7 @@ describe('runSuiteUseCase', () => {
       collectTestFiles: () => {
         return [];
       },
-      removeCompiledTestsWithoutSource: (testFiles) => {
+      checkCompiledTests: (testFiles) => {
         assert.deepStrictEqual(testFiles, []);
 
         return [];
@@ -45,7 +45,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
-        clear: false,
+        prune: false,
         isolation: 'process'
       },
       dependencies
@@ -56,8 +56,8 @@ describe('runSuiteUseCase', () => {
     assert.strictEqual(ranFiles, undefined);
   });
 
-  test('passes cleanup options to stale file check', () => {
-    let cleanupOptions: CompiledTestCleanupOptions | undefined;
+  test('passes check options to stale file check', () => {
+    let checkOptions: CompiledTestCheckOptions | undefined;
 
     const dependencies: RunSuiteUseCaseDependencies = {
       assertDirectory: (dir, name, projectDir) => {
@@ -72,12 +72,12 @@ describe('runSuiteUseCase', () => {
           '/project/dist/a.test.js'
         ];
       },
-      removeCompiledTestsWithoutSource: (testFiles, options) => {
+      checkCompiledTests: (testFiles, options) => {
         assert.deepStrictEqual(testFiles, [
           '/project/dist/a.test.js'
         ]);
 
-        cleanupOptions = options;
+        checkOptions = options;
 
         return [
           '/project/dist/a.test.js'
@@ -104,17 +104,17 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
-        clear: true,
+        prune: true,
         isolation: 'process'
       },
       dependencies
     );
 
-    assert.deepStrictEqual(cleanupOptions, {
+    assert.deepStrictEqual(checkOptions, {
       distDir: '/project/dist',
       sourceDir: '/project/src',
       projectDir: '/project',
-      clear: true
+      prune: true
     });
   });
 
@@ -133,7 +133,7 @@ describe('runSuiteUseCase', () => {
           '/project/dist/b.spec.js'
         ];
       },
-      removeCompiledTestsWithoutSource: (testFiles) => {
+      checkCompiledTests: (testFiles) => {
         checkedFiles = testFiles;
 
         return [
@@ -163,7 +163,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
-        clear: false,
+        prune: false,
         isolation: 'process'
       },
       dependencies
@@ -189,7 +189,7 @@ describe('runSuiteUseCase', () => {
           '/project/dist/b.spec.js'
         ];
       },
-      removeCompiledTestsWithoutSource: () => {
+      checkCompiledTests: () => {
         return [
           '/project/dist/b.spec.js'
         ];
@@ -213,7 +213,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
-        clear: false,
+        prune: false,
         isolation: 'process'
       },
       dependencies
@@ -237,7 +237,7 @@ describe('runSuiteUseCase', () => {
           '/project/dist/a.test.js'
         ];
       },
-      removeCompiledTestsWithoutSource: (testFiles) => {
+      checkCompiledTests: (testFiles) => {
         return testFiles;
       },
       runTestFiles: (_testFiles, isolation) => {
@@ -259,7 +259,7 @@ describe('runSuiteUseCase', () => {
         sourceDir: '/project/src',
         projectDir: '/project',
         runnerFile: '/project/dist/bin.js',
-        clear: false,
+        prune: false,
         isolation: 'none'
       },
       dependencies

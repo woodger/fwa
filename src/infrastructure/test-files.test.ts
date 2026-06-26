@@ -6,7 +6,7 @@ import { describe, test } from 'node:test';
 
 import {
   collectTestFiles,
-  removeCompiledTestsWithoutSource
+  checkCompiledTests
 } from './test-files';
 
 describe('test-files', () => {
@@ -95,7 +95,7 @@ describe('test-files', () => {
     });
   });
 
-  describe('removeCompiledTestsWithoutSource', () => {
+  describe('checkCompiledTests', () => {
     test('keeps compiled test when matching source test exists and is not newer', (t) => {
       const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
       const distDir = path.join(projectDir, 'dist');
@@ -128,13 +128,13 @@ describe('test-files', () => {
 
       const messages: string[] = [];
 
-      const runnableFiles = removeCompiledTestsWithoutSource(
+      const runnableFiles = checkCompiledTests(
         [compiledFile],
         {
           distDir,
           sourceDir,
           projectDir,
-          clear: false,
+          prune: false,
           log: (message) => {
             messages.push(message);
           }
@@ -146,7 +146,7 @@ describe('test-files', () => {
       assert.deepStrictEqual(messages, []);
     });
 
-    test('throws when compiled test has no source and clear is disabled', (t) => {
+    test('throws when compiled test has no source and prune is disabled', (t) => {
       const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
       const distDir = path.join(projectDir, 'dist');
       const sourceDir = path.join(projectDir, 'src');
@@ -165,13 +165,13 @@ describe('test-files', () => {
 
       assert.throws(
         () => {
-          removeCompiledTestsWithoutSource(
+          checkCompiledTests(
             [compiledFile],
             {
               distDir,
               sourceDir,
               projectDir,
-              clear: false,
+              prune: false,
               log: (message) => {
                 messages.push(message);
               }
@@ -186,7 +186,7 @@ describe('test-files', () => {
           );
           assert.match(
             error.message,
-            /Run with --clear to remove them:/
+            /Run with --prune to remove them:/
           );
           assert.match(
             error.message,
@@ -201,7 +201,7 @@ describe('test-files', () => {
       assert.deepStrictEqual(messages, []);
     });
 
-    test('removes compiled test when matching source test does not exist and clear is enabled', (t) => {
+    test('removes compiled test when matching source test does not exist and prune is enabled', (t) => {
       const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
       const distDir = path.join(projectDir, 'dist');
       const sourceDir = path.join(projectDir, 'src');
@@ -218,13 +218,13 @@ describe('test-files', () => {
 
       const messages: string[] = [];
 
-      const runnableFiles = removeCompiledTestsWithoutSource(
+      const runnableFiles = checkCompiledTests(
         [compiledFile],
         {
           distDir,
           sourceDir,
           projectDir,
-          clear: true,
+          prune: true,
           log: (message) => {
             messages.push(message);
           }
@@ -235,7 +235,7 @@ describe('test-files', () => {
       assert.strictEqual(fs.existsSync(compiledFile), false);
       assert.deepStrictEqual(messages, [
         [
-          'Removed stale compiled tests without source:',
+          'Pruned stale compiled tests without source:',
           '- dist/orphan.test.js'
         ].join('\n')
       ]);
@@ -275,13 +275,13 @@ describe('test-files', () => {
 
       assert.throws(
         () => {
-          removeCompiledTestsWithoutSource(
+          checkCompiledTests(
             [compiledFile],
             {
               distDir,
               sourceDir,
               projectDir,
-              clear: false,
+              prune: false,
               log: (message) => {
                 ignoredMessages.push(message);
               }
@@ -349,13 +349,13 @@ describe('test-files', () => {
 
       const ignoredMessages: string[] = [];
 
-      const runnableFiles = removeCompiledTestsWithoutSource(
+      const runnableFiles = checkCompiledTests(
         [compiledFile],
         {
           distDir,
           sourceDir,
           projectDir,
-          clear: false,
+          prune: false,
           log: (message) => {
             ignoredMessages.push(message);
           }
@@ -398,13 +398,13 @@ describe('test-files', () => {
 
       const messages: string[] = [];
 
-      const runnableFiles = removeCompiledTestsWithoutSource(
+      const runnableFiles = checkCompiledTests(
         [compiledFile],
         {
           distDir,
           sourceDir,
           projectDir,
-          clear: false,
+          prune: false,
           log: (message) => {
             messages.push(message);
           }

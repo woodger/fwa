@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type {
-  CompiledTestCleanupOptions
+  CompiledTestCheckOptions
 } from '../application/run-suite';
 import { defaultRunnerConfig } from '../config';
 import type { TestExtension } from '../config.types';
@@ -105,7 +105,7 @@ function toSourceTestPath(
 /**
  * Reads stat only for a regular file.
  *
- * A missing file is considered a normal result because cleanup
+ * A missing file is considered a normal result because checking
  * specifically checks the case where a source test has already been deleted
  * while the compiled test still remains in dist.
  */
@@ -167,19 +167,19 @@ export function assertDirectory(dir: string, name: string, projectDir: string): 
 /**
  * Checks compiled tests before execution.
  *
- * Compiled tests without source are removed only when clear is enabled.
+ * Compiled tests without source are pruned only when prune is enabled.
  * Otherwise the run fails before stale JavaScript can be executed.
  *
  * Additionally checks that an existing compiled test is not older than its source test.
  * This protects against a false-positive run of old compiled JS tests after
  * the corresponding source TS tests were changed or deleted.
  */
-export function removeCompiledTestsWithoutSource(
+export function checkCompiledTests(
   testFiles: string[],
-  options: CompiledTestCleanupOptions
+  options: CompiledTestCheckOptions
 ): string[] {
   const runnableFiles: string[] = [];
-  const removedFiles: string[] = [];
+  const prunedFiles: string[] = [];
   const orphanFiles: string[] = [];
   const outdatedFiles: OutdatedCompiledTest[] = [];
   const log = options.log ?? ((message: string) => console.warn(message));
@@ -197,9 +197,9 @@ export function removeCompiledTestsWithoutSource(
     if (sourceStat === undefined) {
       const projectPath = toProjectPath(file, options.projectDir);
 
-      if (options.clear) {
+      if (options.prune) {
         fs.unlinkSync(file);
-        removedFiles.push(projectPath);
+        prunedFiles.push(projectPath);
         continue;
       }
 
@@ -217,11 +217,11 @@ export function removeCompiledTestsWithoutSource(
     }
   }
 
-  if (removedFiles.length) {
+  if (prunedFiles.length) {
     log(
       [
-        'Removed stale compiled tests without source:',
-        ...removedFiles
+        'Pruned stale compiled tests without source:',
+        ...prunedFiles
           .sort((left, right) => left.localeCompare(right))
           .map((file) => `- ${file}`)
       ].join('\n')
@@ -233,7 +233,7 @@ export function removeCompiledTestsWithoutSource(
       [
         'Stale compiled tests without source found.',
         '',
-        'Run with --clear to remove them:',
+        'Run with --prune to remove them:',
         ...orphanFiles
           .sort((left, right) => left.localeCompare(right))
           .map((file) => `- ${file}`)

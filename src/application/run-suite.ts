@@ -17,7 +17,7 @@ export type Log = (message: string) => void;
  * The check links compiled JS tests to the corresponding source TS tests
  * and protects against running stale compiled files.
  */
-export type CompiledTestCleanupOptions = {
+export type CompiledTestCheckOptions = {
   /**
    * Directory with compiled JS files.
    *
@@ -37,15 +37,15 @@ export type CompiledTestCleanupOptions = {
   /**
    * Project root for human-readable diagnostics.
    *
-   * Used only to format paths in messages about removed
+   * Used only to format paths in messages about pruned
    * or outdated tests.
    */
   projectDir: string;
 
   /**
-   * Allows removing compiled tests whose source files no longer exist.
+   * Allows pruning compiled tests whose source files no longer exist.
    */
-  clear: boolean;
+  prune: boolean;
 
   /**
    * Optional diagnostic message output.
@@ -85,11 +85,11 @@ export type SuiteRunnerOptions = {
   runnerFile?: string;
 
   /**
-   * Remove stale compiled tests whose source files no longer exist.
+   * Prune stale compiled tests whose source files no longer exist.
    *
    * Uses the project default when omitted.
    */
-  clear?: boolean;
+  prune?: boolean;
 
   /**
    * Native Node.js test runner isolation mode.
@@ -104,7 +104,7 @@ export type SuiteRunnerOptions = {
   log?: Log;
 };
 
-export type ResolvedSuiteRunnerOptions = CompiledTestCleanupOptions & {
+export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
   runnerFile: string;
   isolation: TestIsolation;
 };
@@ -112,9 +112,9 @@ export type ResolvedSuiteRunnerOptions = CompiledTestCleanupOptions & {
 export type RunSuiteUseCaseDependencies = {
   assertDirectory(dir: string, name: string, projectDir: string): void;
   collectTestFiles(dir: string, extensions: readonly TestExtension[]): string[];
-  removeCompiledTestsWithoutSource(
+  checkCompiledTests(
     testFiles: string[],
-    options: CompiledTestCleanupOptions
+    options: CompiledTestCheckOptions
   ): string[];
   runTestFiles(testFiles: string[], isolation: TestIsolation): void;
   resolvePath(file: string): string;
@@ -133,21 +133,21 @@ export function runSuiteUseCase(
   options: ResolvedSuiteRunnerOptions,
   dependencies: RunSuiteUseCaseDependencies
 ): void {
-  const cleanupOptions: CompiledTestCleanupOptions = {
+  const checkOptions: CompiledTestCheckOptions = {
     distDir: options.distDir,
     sourceDir: options.sourceDir,
     projectDir: options.projectDir,
-    clear: options.clear
+    prune: options.prune
   };
 
   if (options.log !== undefined) {
-    cleanupOptions.log = options.log;
+    checkOptions.log = options.log;
   }
 
   dependencies.assertDirectory(options.distDir, 'distDir', options.projectDir);
   dependencies.assertDirectory(options.sourceDir, 'sourceDir', options.projectDir);
 
-  const testFiles = dependencies.removeCompiledTestsWithoutSource(
+  const testFiles = dependencies.checkCompiledTests(
     dependencies
       .collectTestFiles(
         options.distDir,
@@ -156,7 +156,7 @@ export function runSuiteUseCase(
       .filter((file) => (
         dependencies.resolvePath(file) !== dependencies.resolvePath(options.runnerFile)
       )),
-    cleanupOptions
+    checkOptions
   );
 
   if (!testFiles.length) {
