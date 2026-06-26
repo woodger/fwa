@@ -44,7 +44,7 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bootstrap/cli.js'
+        runnerFile: '/project/dist/bin.js'
       },
       dependencies
     );
@@ -101,7 +101,7 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bootstrap/cli.js'
+        runnerFile: '/project/dist/bin.js'
       },
       dependencies
     );
@@ -124,7 +124,7 @@ describe('runSuiteUseCase', () => {
       collectTestFiles: () => {
         return [
           '/project/dist/a.test.js',
-          '/project/dist/bootstrap/cli.js',
+          '/project/dist/bin.js',
           '/project/dist/b.spec.js'
         ];
       },
@@ -157,7 +157,7 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bootstrap/cli.js'
+        runnerFile: '/project/dist/bin.js'
       },
       dependencies
     );
@@ -205,7 +205,7 @@ describe('runSuiteUseCase', () => {
         distDir: '/project/dist',
         sourceDir: '/project/src',
         projectDir: '/project',
-        runnerFile: '/project/dist/bootstrap/cli.js'
+        runnerFile: '/project/dist/bin.js'
       },
       dependencies
     );

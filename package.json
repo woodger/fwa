@@ -18,11 +18,11 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "fwa": "./dist/bootstrap/cli.js"
+    "fwa": "./dist/bin.js"
   },
   "scripts": {
     "build": "tsc",
-    "test": "node dist/bootstrap/cli.js .",
+    "test": "node dist/bin.js .",
     "lint": "eslint src eslint.config.mjs"
   },
   "engines": {

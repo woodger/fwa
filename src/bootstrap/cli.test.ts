@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
 
-import { runCli } from './run-cli';
+import { runCli } from './cli';
 
 describe('runCli', () => {
   test('prints help for --help', () => {
@@ -11,7 +11,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--help'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
@@ -51,7 +51,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['-h'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
@@ -91,7 +91,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--version'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => '2.0.0-alpha',
       runSuite: () => {
@@ -120,7 +120,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['-v'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => '2.0.0-alpha',
       runSuite: () => {
@@ -148,7 +148,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['/workspace/project'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
@@ -169,7 +169,7 @@ describe('runCli', () => {
     });
 
     assert.strictEqual(runnerProjectDir, '/workspace/project');
-    assert.strictEqual(runnerFile, '/project/dist/bootstrap/cli.js');
+    assert.strictEqual(runnerFile, '/project/dist/bin.js');
   });
 
   test('rejects missing project root', () => {
@@ -179,7 +179,7 @@ describe('runCli', () => {
 
     runCli({
       args: [],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
@@ -210,7 +210,7 @@ describe('runCli', () => {
 
     runCli({
       args: ['--source-dir'],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');
@@ -244,7 +244,7 @@ describe('runCli', () => {
         '/workspace/one',
         '/workspace/two'
       ],
-      runnerFile: '/project/dist/bootstrap/cli.js'
+      runnerFile: '/project/dist/bin.js'
     }, {
       readVersion: () => {
         assert.fail('Unexpected version read');

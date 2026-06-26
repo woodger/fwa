@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, test } from 'node:test';
 
-import { resolveSuiteOptions } from './run-suite';
+import { resolveSuiteOptions } from './suite';
 
 describe('resolveSuiteOptions', () => {
   test('resolves sourceDir and distDir from tsconfig', (t) => {
