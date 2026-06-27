@@ -74,7 +74,7 @@ Recommended script:
 {
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && fwa"
+    "test": "fwa"
   }
 }
 ```

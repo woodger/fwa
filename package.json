@@ -1,7 +1,7 @@
 {
   "name": "fwa",
   "version": "2.0.0-alpha",
-  "description": "Compiled Suite Runner",
+  "description": "Progressive suite test runner using Node.js",
   "keywords": [
     "test",
     "suite"
@@ -15,10 +15,10 @@
     "type": "git",
     "url": "git+https://github.com/woodger/fwa.git"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
-    "fwa": "./dist/bin.js"
+    "fwa": "dist/bin.js"
   },
   "scripts": {
     "build": "tsc",
@@ -27,6 +27,9 @@
   },
   "engines": {
     "node": ">=20.19.0"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
