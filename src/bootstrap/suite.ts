@@ -43,8 +43,13 @@ export function resolveSuiteOptions(
     ),
     runnerFile: options.runnerFile ?? __filename,
     prune: options.prune ?? defaultRunnerConfig.pruneStaleCompiledTests,
-    isolation: options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation
+    isolation: options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation,
+    nodeArgs: options.nodeArgs ?? defaultRunnerConfig.nodeTest.defaultNodeArgs
   };
+
+  if (resolvedOptions.isolation === 'none' && resolvedOptions.nodeArgs.length > 0) {
+    throw new Error('Node args cannot be used with isolation "none".');
+  }
 
   if (options.log !== undefined) {
     resolvedOptions.log = options.log;

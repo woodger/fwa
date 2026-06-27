@@ -30,6 +30,7 @@ function renderHelp(): string {
     '  -p, --project <path>     TypeScript config file or directory.',
     '  --prune                  Prune stale compiled tests without source.',
     `  -i, --isolation <mode>   Test isolation: process or none. Default: ${defaultRunnerConfig.nodeTest.defaultIsolation}.`,
+    '  --node-args <args...>    Pass remaining args to Node test processes.',
     '  -h, --help               Show help.',
     '  -v, --version            Show version.',
     ''
@@ -72,13 +73,18 @@ export function runCli(
     }
   }
 
-  if (options.args.includes('--help') || options.args.includes('-h')) {
+  const nodeArgsBoundary = options.args.indexOf('--node-args');
+  const runnerArgs = nodeArgsBoundary === -1
+    ? options.args
+    : options.args.slice(0, nodeArgsBoundary);
+
+  if (runnerArgs.includes('--help') || runnerArgs.includes('-h')) {
     dependencies.writeStderr('Help option cannot be combined with other arguments.\n');
     dependencies.setExitCode(1);
     return;
   }
 
-  if (options.args.includes('--version') || options.args.includes('-v')) {
+  if (runnerArgs.includes('--version') || runnerArgs.includes('-v')) {
     dependencies.writeStderr('Version option cannot be combined with other arguments.\n');
     dependencies.setExitCode(1);
     return;
@@ -88,9 +94,10 @@ export function runCli(
   let tsConfigPath: string | undefined;
   let prune: boolean | undefined;
   let isolation: TestIsolation | undefined;
+  let nodeArgs: readonly string[] | undefined;
 
-  // Keep parsing small and strict: one positional project root plus
-  // TypeScript-style options with separate values.
+  // Keep parsing small and strict: one positional project root, simple
+  // runner options, and a final --node-args boundary for raw Node flags.
   for (let index = 0; index < options.args.length; index += 1) {
     const arg = options.args[index];
 
@@ -128,6 +135,19 @@ export function runCli(
 
       prune = true;
       continue;
+    }
+
+    if (arg === '--node-args') {
+      const values = options.args.slice(index + 1);
+
+      if (!values.length) {
+        dependencies.writeStderr('Option --node-args expects at least one value.\n');
+        dependencies.setExitCode(1);
+        return;
+      }
+
+      nodeArgs = values;
+      break;
     }
 
     if (arg === '--isolation' || arg === '-i') {
@@ -172,6 +192,12 @@ export function runCli(
     return;
   }
 
+  if (isolation === 'none' && nodeArgs !== undefined) {
+    dependencies.writeStderr('Option --node-args cannot be used with isolation "none".\n');
+    dependencies.setExitCode(1);
+    return;
+  }
+
   const projectDir = projectArgs[0] ?? options.defaultProjectDir;
   const suiteOptions: SuiteRunnerOptions = {
     projectDir,
@@ -188,6 +214,10 @@ export function runCli(
 
   if (isolation !== undefined) {
     suiteOptions.isolation = isolation;
+  }
+
+  if (nodeArgs !== undefined) {
+    suiteOptions.nodeArgs = nodeArgs;
   }
 
   dependencies.runSuite(suiteOptions);

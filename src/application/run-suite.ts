@@ -99,6 +99,13 @@ export type SuiteRunnerOptions = {
   isolation?: TestIsolation;
 
   /**
+   * Node.js CLI flags passed to isolated test child processes.
+   *
+   * Uses the project default when omitted.
+   */
+  nodeArgs?: readonly string[];
+
+  /**
    * Optional diagnostic message output.
    */
   log?: Log;
@@ -107,6 +114,7 @@ export type SuiteRunnerOptions = {
 export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
   runnerFile: string;
   isolation: TestIsolation;
+  nodeArgs: readonly string[];
 };
 
 export type RunSuiteUseCaseDependencies = {
@@ -116,7 +124,11 @@ export type RunSuiteUseCaseDependencies = {
     testFiles: string[],
     options: CompiledTestCheckOptions
   ): string[];
-  runTestFiles(testFiles: string[], isolation: TestIsolation): void;
+  runTestFiles(
+    testFiles: string[],
+    isolation: TestIsolation,
+    nodeArgs: readonly string[]
+  ): void;
   resolvePath(file: string): string;
   setExitCode(code: number): void;
   toProjectPath(file: string, projectDir: string): string;
@@ -167,5 +179,5 @@ export function runSuiteUseCase(
     return;
   }
 
-  dependencies.runTestFiles(testFiles, options.isolation);
+  dependencies.runTestFiles(testFiles, options.isolation, options.nodeArgs);
 }

@@ -39,6 +39,7 @@ describe('resolveSuiteOptions', () => {
     assert.strictEqual(options.distDir, path.join(projectDir, 'build'));
     assert.strictEqual(options.runnerFile, 'runner.js');
     assert.strictEqual(options.prune, false);
+    assert.deepStrictEqual(options.nodeArgs, []);
   });
 
   test('uses selected prune mode', (t) => {
@@ -128,6 +129,78 @@ describe('resolveSuiteOptions', () => {
     });
 
     assert.strictEqual(options.isolation, 'none');
+  });
+
+  test('uses selected node args', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    const options = resolveSuiteOptions({
+      projectDir,
+      nodeArgs: [
+        '--no-warnings',
+        '--conditions=development'
+      ]
+    });
+
+    assert.deepStrictEqual(options.nodeArgs, [
+      '--no-warnings',
+      '--conditions=development'
+    ]);
+  });
+
+  test('rejects node args without process isolation', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    assert.throws(
+      () => {
+        resolveSuiteOptions({
+          projectDir,
+          isolation: 'none',
+          nodeArgs: [
+            '--no-warnings'
+          ]
+        });
+      },
+      /Node args cannot be used with isolation "none"\./
+    );
   });
 
   test('resolves sourceDir and distDir from selected TypeScript project config', (t) => {

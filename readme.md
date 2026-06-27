@@ -185,6 +185,7 @@ Options:
   -p, --project <path>     TypeScript config file or directory.
   --prune                  Prune stale compiled tests without source.
   -i, --isolation <mode>   Test isolation: process or none. Default: process.
+  --node-args <args...>    Pass remaining args to Node test processes.
   -h, --help               Show help.
   -v, --version            Show version.
 ```
@@ -197,6 +198,8 @@ Rules:
 - `--project` expects a separate value: `--project tsconfig.test.json`;
 - `--prune` prunes stale compiled tests whose source files no longer exist;
 - `--isolation` can be `process` or `none`;
+- `--node-args` consumes all remaining arguments;
+- `--node-args` cannot be used with `--isolation none`;
 - `--source-dir` and `--dist-dir` are not supported.
 
 ## Public API
@@ -241,6 +244,20 @@ import { runSuite } from 'fwa';
 runSuite({
   projectDir: process.cwd(),
   isolation: 'none'
+});
+```
+
+With custom Node.js flags for isolated test child processes:
+
+```ts
+import { runSuite } from 'fwa';
+
+runSuite({
+  projectDir: process.cwd(),
+  nodeArgs: [
+    '--no-warnings',
+    '--conditions=development'
+  ]
 });
 ```
 

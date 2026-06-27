@@ -14,12 +14,14 @@ import type { TestIsolation } from '../config.types';
  */
 export function runNodeTestFiles(
   testFiles: string[],
-  isolation: TestIsolation
+  isolation: TestIsolation,
+  nodeArgs: readonly string[]
 ): void {
   const testStream = run({
     files: testFiles,
     concurrency: defaultRunnerConfig.nodeTest.concurrency,
-    isolation
+    isolation,
+    execArgv: nodeArgs
   });
 
   testStream.on('test:fail', () => {

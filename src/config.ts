@@ -15,6 +15,7 @@ export const defaultRunnerConfig = {
   pruneStaleCompiledTests: false,
   nodeTest: {
     concurrency: true,
-    defaultIsolation: 'process'
+    defaultIsolation: 'process',
+    defaultNodeArgs: []
   }
 } as const satisfies RunnerConfig;

@@ -32,6 +32,7 @@ export type TestFileExtensionPair = {
 export type NodeTestConfig = {
   concurrency: boolean;
   defaultIsolation: TestIsolation;
+  defaultNodeArgs: readonly string[];
 };
 
 /**

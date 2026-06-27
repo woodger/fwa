@@ -41,6 +41,7 @@ describe('runCli', () => {
         '  -p, --project <path>     TypeScript config file or directory.',
         '  --prune                  Prune stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
+        '  --node-args <args...>    Pass remaining args to Node test processes.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
         ''
@@ -85,6 +86,7 @@ describe('runCli', () => {
         '  -p, --project <path>     TypeScript config file or directory.',
         '  --prune                  Prune stale compiled tests without source.',
         '  -i, --isolation <mode>   Test isolation: process or none. Default: process.',
+        '  --node-args <args...>    Pass remaining args to Node test processes.',
         '  -h, --help               Show help.',
         '  -v, --version            Show version.',
         ''
@@ -379,6 +381,76 @@ describe('runCli', () => {
     assert.strictEqual(runnerIsolation, 'process');
   });
 
+  test('runs suite with node args', () => {
+    let runnerNodeArgs: readonly string[] | undefined;
+
+    runCli({
+      args: [
+        '--node-args',
+        '--no-warnings',
+        '--conditions=development'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerNodeArgs = options.nodeArgs;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.deepStrictEqual(runnerNodeArgs, [
+      '--no-warnings',
+      '--conditions=development'
+    ]);
+  });
+
+  test('passes remaining args after node args boundary', () => {
+    let runnerProjectDir: string | undefined;
+    let runnerNodeArgs: readonly string[] | undefined;
+
+    runCli({
+      args: [
+        '/workspace/project',
+        '--node-args',
+        '--help'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: (options) => {
+        runnerProjectDir = options.projectDir;
+        runnerNodeArgs = options.nodeArgs;
+      },
+      setExitCode: (code) => {
+        assert.fail(`Unexpected exit code: ${String(code)}`);
+      },
+      writeStderr: (message) => {
+        assert.fail(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(runnerProjectDir, '/workspace/project');
+    assert.deepStrictEqual(runnerNodeArgs, ['--help']);
+  });
+
   test('rejects TypeScript project option without value', () => {
     const stderr: string[] = [];
     let exitCode: number | undefined;
@@ -550,6 +622,75 @@ describe('runCli', () => {
     assert.strictEqual(suiteWasRun, false);
     assert.strictEqual(exitCode, 1);
     assert.deepStrictEqual(stderr, ['Option --prune cannot be specified more than once.\n']);
+  });
+
+  test('rejects node args option without value', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: ['--node-args'],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --node-args expects at least one value.\n']);
+  });
+
+  test('rejects node args without process isolation', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+    let suiteWasRun = false;
+
+    runCli({
+      args: [
+        '--isolation',
+        'none',
+        '--node-args',
+        '--no-warnings'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        suiteWasRun = true;
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(suiteWasRun, false);
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, ['Option --node-args cannot be used with isolation "none".\n']);
   });
 
   test('rejects unknown test isolation value', () => {
