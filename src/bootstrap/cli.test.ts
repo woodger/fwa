@@ -451,6 +451,43 @@ describe('runCli', () => {
     assert.deepStrictEqual(runnerNodeArgs, ['--help']);
   });
 
+  test('prints suite error without stack trace', () => {
+    const stderr: string[] = [];
+    let exitCode: number | undefined;
+
+    runCli({
+      args: [
+        '--isolation',
+        'none'
+      ],
+      defaultProjectDir: '/project',
+      runnerFile: '/project/dist/bin.js'
+    }, {
+      readVersion: () => {
+        assert.fail('Unexpected version read');
+      },
+      runSuite: () => {
+        throw new Error(
+          'Test isolation requires Node.js >= 22.8.0 because node:test run() does not support isolation before that version.'
+        );
+      },
+      setExitCode: (code) => {
+        exitCode = code;
+      },
+      writeStderr: (message) => {
+        stderr.push(message);
+      },
+      writeStdout: (message) => {
+        assert.fail(message);
+      }
+    });
+
+    assert.strictEqual(exitCode, 1);
+    assert.deepStrictEqual(stderr, [
+      'Test isolation requires Node.js >= 22.8.0 because node:test run() does not support isolation before that version.\n'
+    ]);
+  });
+
   test('rejects TypeScript project option without value', () => {
     const stderr: string[] = [];
     let exitCode: number | undefined;

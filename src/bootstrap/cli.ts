@@ -41,6 +41,26 @@ function isTestIsolation(value: string): value is TestIsolation {
   return value === 'process' || value === 'none';
 }
 
+function formatThrownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function runSuiteWithErrorHandling(
+  suiteOptions: SuiteRunnerOptions,
+  dependencies: RunCliDependencies
+): void {
+  try {
+    dependencies.runSuite(suiteOptions);
+  } catch (error) {
+    dependencies.writeStderr(`${formatThrownError(error)}\n`);
+    dependencies.setExitCode(1);
+  }
+}
+
 export function runCli(
   options: RunCliOptions,
   dependencies: RunCliDependencies
@@ -48,10 +68,10 @@ export function runCli(
   // No arguments means the runner uses the current process directory,
   // which is passed from bin.ts as an explicit dependency.
   if (options.args.length === 0) {
-    dependencies.runSuite({
+    runSuiteWithErrorHandling({
       projectDir: options.defaultProjectDir,
       runnerFile: options.runnerFile
-    });
+    }, dependencies);
     return;
   }
 
@@ -220,5 +240,5 @@ export function runCli(
     suiteOptions.nodeArgs = nodeArgs;
   }
 
-  dependencies.runSuite(suiteOptions);
+  runSuiteWithErrorHandling(suiteOptions, dependencies);
 }

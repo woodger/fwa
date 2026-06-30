@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "2.0.0-alpha",
+  "version": "2.0.1",
   "description": "Progressive suite test runner using Node.js",
   "keywords": [
     "test",
@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.0.1",
+    "@types/node": "^22.10.0",
     "eslint": "^10.5.0",
     "globals": "^17.7.0",
     "typescript": "^6.0.3",

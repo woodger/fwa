@@ -33,6 +33,14 @@ execution to the native Node.js test runner.
 `compilerOptions.rootDir` is optional. When it is not configured, `fwa` uses
 TypeScript's parsed default.
 
+Some CLI options depend on newer `node:test` runtime features:
+
+- `--isolation` requires Node.js `>=22.8.0`;
+- `--node-args` requires Node.js `>=22.10.0`.
+
+When these options are used on an older Node.js version, `fwa` fails with an
+explicit error instead of silently ignoring unsupported runtime behavior.
+
 ## Installation
 
 ```sh
@@ -198,7 +206,9 @@ Rules:
 - `--project` expects a separate value: `--project tsconfig.test.json`;
 - `--prune` prunes stale compiled tests whose source files no longer exist;
 - `--isolation` can be `process` or `none`;
+- `--isolation` requires Node.js `>=22.8.0`;
 - `--node-args` consumes all remaining arguments;
+- `--node-args` requires Node.js `>=22.10.0`;
 - `--node-args` cannot be used with `--isolation none`;
 - `--source-dir` and `--dist-dir` are not supported.
 
@@ -247,6 +257,8 @@ runSuite({
 });
 ```
 
+The `isolation` option requires Node.js `>=22.8.0`.
+
 With custom Node.js flags for isolated test child processes:
 
 ```ts
@@ -260,6 +272,8 @@ runSuite({
   ]
 });
 ```
+
+The `nodeArgs` option requires Node.js `>=22.10.0`.
 
 Only `runSuite` and the exported TypeScript types from the package root should
 be treated as public API. Internal files under `dist` are implementation

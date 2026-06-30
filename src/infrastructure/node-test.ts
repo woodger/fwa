@@ -1,9 +1,14 @@
 import process from 'node:process';
-import { run } from 'node:test';
+import { run, type RunOptions } from 'node:test';
 import { spec } from 'node:test/reporters';
 
 import { defaultRunnerConfig } from '../config';
 import type { TestIsolation } from '../config.types';
+import {
+  assertNodeTestExecArgvSupported,
+  assertNodeTestIsolationSupported,
+  supportsNodeTestIsolation
+} from './node-runtime';
 
 /**
  * Runs compiled JS tests through the native Node.js test runner.
@@ -17,12 +22,25 @@ export function runNodeTestFiles(
   isolation: TestIsolation,
   nodeArgs: readonly string[]
 ): void {
-  const testStream = run({
+  const runOptions: RunOptions = {
     files: testFiles,
-    concurrency: defaultRunnerConfig.nodeTest.concurrency,
-    isolation,
-    execArgv: nodeArgs
-  });
+    concurrency: defaultRunnerConfig.nodeTest.concurrency
+  };
+
+  // Older supported Node.js versions ignore newer run() options. Keep the
+  // default path compatible, but fail if a non-default behavior is required.
+  if (supportsNodeTestIsolation()) {
+    runOptions.isolation = isolation;
+  } else if (isolation === 'none') {
+    assertNodeTestIsolationSupported();
+  }
+
+  if (nodeArgs.length > 0) {
+    assertNodeTestExecArgvSupported();
+    runOptions.execArgv = nodeArgs;
+  }
+
+  const testStream = run(runOptions);
 
   testStream.on('test:fail', () => {
     process.exitCode = 1;

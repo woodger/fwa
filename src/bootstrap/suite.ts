@@ -15,6 +15,7 @@ import {
 } from '../infrastructure/test-files';
 import { readTsConfigDirectories } from '../infrastructure/tsconfig-directories';
 import { toProjectPath } from '../infrastructure/project-path';
+import { assertExplicitNodeTestOptionsSupported } from '../infrastructure/node-runtime';
 
 /**
  * Resolves all runner options into absolute paths.
@@ -59,6 +60,8 @@ export function resolveSuiteOptions(
 }
 
 export function runSuite(options: SuiteRunnerOptions): void {
+  assertExplicitNodeTestOptionsSupported(options);
+
   runSuiteUseCase(
     resolveSuiteOptions(options),
     {
