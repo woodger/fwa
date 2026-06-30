@@ -33,24 +33,6 @@ Use `fwa` when a project:
 It is usually not needed when tests are executed directly from TypeScript
 without compiled JavaScript output.
 
-## Requirements
-
-- Node.js `>=20.19.0`
-- TypeScript `^6.0.0` installed in the consuming project
-- TypeScript project with `compilerOptions.outDir`
-- compiled tests must keep the same relative path as source tests
-
-`typescript` must be installed in the consuming project because `fwa` reads
-tsconfig through the TypeScript compiler API.
-
-Some CLI options depend on newer `node:test` runtime features:
-
-- `--isolation` requires Node.js `>=22.8.0`;
-- `--node-args` requires Node.js `>=22.10.0`.
-
-When these options are used on an older Node.js version, `fwa` fails with an
-explicit error instead of silently ignoring unsupported runtime behavior.
-
 ## Installation
 
 ```sh
@@ -124,3 +106,21 @@ runSuite({
 Only `runSuite` and the exported TypeScript types from the package root should
 be treated as public API. Internal files under `dist` are implementation
 details.
+
+## Requirements
+
+- Node.js `>=20.19.0`
+- TypeScript `^6.0.0` installed in the consuming project
+- TypeScript project with `compilerOptions.outDir`
+- compiled tests must keep the same relative path as source tests
+
+`typescript` must be installed in the consuming project because `fwa` reads
+tsconfig through the TypeScript compiler API.
+
+Some CLI options depend on newer `node:test` runtime features:
+
+- `--isolation` requires Node.js `>=22.8.0`;
+- `--node-args` requires Node.js `>=22.10.0`.
+
+When these options are used on an older Node.js version, `fwa` fails with an
+explicit error instead of silently ignoring unsupported runtime behavior.
