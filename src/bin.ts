@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+/**
+ * The CLI entrypoint module adapts the Node.js process environment to the runner bootstrap.
+ *
+ * Allowed here:
+ * - reading process arguments and current working directory;
+ * - reading package metadata for version output;
+ * - wiring stdout, stderr, and exit code side effects.
+ *
+ * This file must not contain CLI option parsing, test discovery, or suite execution rules.
+ */
+
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';

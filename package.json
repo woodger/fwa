@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "Progressive suite test runner using Node.js",
   "keywords": [
     "test",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/woodger/fwa.git"
+    "url": "git@github.com:woodger/fwa.git"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

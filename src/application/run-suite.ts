@@ -18,33 +18,9 @@ export type Log = (message: string) => void;
  * and protects against running stale compiled files.
  */
 export type CompiledTestCheckOptions = {
-  /**
-   * Directory with compiled JS files.
-   *
-   * Usually matches dist. All discovered compiled tests are interpreted
-   * relative to this directory.
-   */
   distDir: string;
-
-  /**
-   * Directory with source TS files.
-   *
-   * Usually matches src. The runner uses it to restore the expected path
-   * to the source test for each compiled test.
-   */
   sourceDir: string;
-
-  /**
-   * Project root for human-readable diagnostics.
-   *
-   * Used only to format paths in messages about pruned
-   * or outdated tests.
-   */
   projectDir: string;
-
-  /**
-   * Allows pruning compiled tests whose source files no longer exist.
-   */
   prune: boolean;
 
   /**
@@ -63,9 +39,6 @@ export type CompiledTestCheckOptions = {
  * They are resolved from the target project's tsconfig.
  */
 export type SuiteRunnerOptions = {
-  /**
-   * Project root used to find tsconfig.json.
-   */
   projectDir: string;
 
   /**
@@ -84,39 +57,37 @@ export type SuiteRunnerOptions = {
    */
   runnerFile?: string;
 
-  /**
-   * Prune stale compiled tests whose source files no longer exist.
-   *
-   * Uses the project default when omitted.
-   */
   prune?: boolean;
 
   /**
    * Native Node.js test runner isolation mode.
    *
-   * Uses the project default when omitted.
+   * Requires Node.js >= 22.8.0 when explicitly configured.
    */
   isolation?: TestIsolation;
 
   /**
    * Node.js CLI flags passed to isolated test child processes.
    *
-   * Uses the project default when omitted.
+   * Requires Node.js >= 22.10.0 when explicitly configured.
    */
   nodeArgs?: readonly string[];
 
-  /**
-   * Optional diagnostic message output.
-   */
   log?: Log;
 };
 
+/**
+ * Fully resolved suite options used by the application use case.
+ */
 export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
   runnerFile: string;
   isolation: TestIsolation;
   nodeArgs: readonly string[];
 };
 
+/**
+ * Runtime side effects required by the suite use case.
+ */
 export type RunSuiteUseCaseDependencies = {
   assertDirectory(dir: string, name: string, projectDir: string): void;
   collectTestFiles(dir: string, extensions: readonly TestExtension[]): string[];

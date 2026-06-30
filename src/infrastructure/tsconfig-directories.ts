@@ -5,11 +5,17 @@ import * as ts from 'typescript';
 import { defaultRunnerConfig } from '../config';
 import { toProjectPath } from './project-path';
 
+/**
+ * Source and output directories resolved from TypeScript config.
+ */
 export type TsConfigDirectories = {
   sourceDir: string;
   distDir: string;
 };
 
+/**
+ * Formats TypeScript config diagnostics for deterministic CLI errors.
+ */
 function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
   return ts.formatDiagnostics(diagnostics, {
     getCanonicalFileName: (file) => file,
@@ -18,6 +24,9 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
   });
 }
 
+/**
+ * Resolves the config path using the same file-or-directory shape as `tsc --project`.
+ */
 function resolveTsConfigFile(projectDir: string, projectPath: string | undefined): string {
   if (projectPath === undefined) {
     const configFile = ts.findConfigFile(
