@@ -1,3 +1,4 @@
+
 # fwa
 
 [![npm version](https://img.shields.io/npm/v/fwa.svg)](https://www.npmjs.com/package/fwa)
@@ -13,25 +14,7 @@ discovery deterministic and independent from shell glob behavior.
 It does not replace `node:test`. It prepares a safe file list before delegating
 execution to the native Node.js test runner.
 
-## Documentation
-
-- [CLI usage](https://github.com/woodger/fwa/blob/develop/docs/usage.md)
-- [TypeScript config](https://github.com/woodger/fwa/blob/develop/docs/typescript-config.md)
-- [Stale compiled tests](https://github.com/woodger/fwa/blob/develop/docs/stale-compiled-tests.md)
-- [Public API](https://github.com/woodger/fwa/blob/develop/docs/api.md)
-
-## When To Use
-
-Use `fwa` when a project:
-
-- writes tests in TypeScript;
-- runs compiled tests from `outDir`;
-- has nested test files;
-- wants deterministic recursive test discovery;
-- wants protection from stale compiled test files.
-
-It is usually not needed when tests are executed directly from TypeScript
-without compiled JavaScript output.
+[CLI usage](https://github.com/woodger/fwa/blob/main/docs/usage.md) | [TypeScript config](https://github.com/woodger/fwa/blob/main/docs/typescript-config.md) | [Stale compiled tests](https://github.com/woodger/fwa/blob/main/docs/stale-compiled-tests.md) | [Public API](https://github.com/woodger/fwa/blob/main/docs/api.md)
 
 ## Installation
 
@@ -61,6 +44,20 @@ npm test
 
 `fwa` does not compile TypeScript. It expects compiled JavaScript tests to
 already exist in `outDir`.
+
+## When To Use
+
+Use `fwa` when a project:
+
+- reads `rootDir` and `outDir` from TypeScript config;
+- recursively finds compiled `*.test.js` and `*.spec.js` files;
+- blocks compiled tests whose source files no longer exist;
+- prunes those files only when `--prune` is used;
+- fails when source tests are newer than compiled tests;
+- passes the final file list to native `node:test`.
+
+It does not replace `node:test`. It prepares a safe file list before delegating
+execution to the native Node.js test runner.
 
 ## CLI
 
@@ -106,21 +103,3 @@ runSuite({
 Only `runSuite` and the exported TypeScript types from the package root should
 be treated as public API. Internal files under `dist` are implementation
 details.
-
-## Requirements
-
-- Node.js `>=20.19.0`
-- TypeScript `^6.0.0` installed in the consuming project
-- TypeScript project with `compilerOptions.outDir`
-- compiled tests must keep the same relative path as source tests
-
-`typescript` must be installed in the consuming project because `fwa` reads
-tsconfig through the TypeScript compiler API.
-
-Some CLI options depend on newer `node:test` runtime features:
-
-- `--isolation` requires Node.js `>=22.8.0`;
-- `--node-args` requires Node.js `>=22.10.0`.
-
-When these options are used on an older Node.js version, `fwa` fails with an
-explicit error instead of silently ignoring unsupported runtime behavior.
