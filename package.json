@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Progressive suite test runner using Node.js",
   "keywords": [
     "test",

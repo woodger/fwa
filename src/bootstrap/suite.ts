@@ -59,6 +59,13 @@ export function resolveSuiteOptions(
   return resolvedOptions;
 }
 
+/**
+ * Runs a suite using the default Node.js runtime adapters.
+ *
+ * This bootstrap entrypoint owns process-level side effects such as
+ * `process.exitCode` and console warnings; application code receives them
+ * as injected dependencies.
+ */
 export function runSuite(options: SuiteRunnerOptions): void {
   assertExplicitNodeTestOptionsSupported(options);
 

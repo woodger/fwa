@@ -76,12 +76,18 @@ export type SuiteRunnerOptions = {
   log?: Log;
 };
 
+/**
+ * Fully resolved suite options used by the application use case.
+ */
 export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
   runnerFile: string;
   isolation: TestIsolation;
   nodeArgs: readonly string[];
 };
 
+/**
+ * Runtime side effects required by the suite use case.
+ */
 export type RunSuiteUseCaseDependencies = {
   assertDirectory(dir: string, name: string, projectDir: string): void;
   collectTestFiles(dir: string, extensions: readonly TestExtension[]): string[];

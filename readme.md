@@ -27,8 +27,12 @@ execution to the native Node.js test runner.
 ## Requirements
 
 - Node.js `>=20.19.0`
+- TypeScript `^6.0.0` installed in the consuming project
 - TypeScript project with `compilerOptions.outDir`
 - compiled tests must keep the same relative path as source tests
+
+`typescript` must be installed in the consuming project because `fwa` reads
+tsconfig through the TypeScript compiler API.
 
 `compilerOptions.rootDir` is optional. When it is not configured, `fwa` uses
 TypeScript's parsed default.
@@ -89,6 +93,16 @@ Recommended script:
 
 When `fwa` is used from another npm package, prefer the `fwa` command instead
 of calling files inside `dist` directly.
+
+## Quick Start
+
+```sh
+npm run build
+npm test
+```
+
+`fwa` does not compile TypeScript. It expects compiled JavaScript tests to
+already exist in `outDir`.
 
 ## TypeScript Config
 
@@ -208,9 +222,17 @@ Rules:
 - `--isolation` can be `process` or `none`;
 - `--isolation` requires Node.js `>=22.8.0`;
 - `--node-args` consumes all remaining arguments;
+- `--node-args` must be the last `fwa` option;
 - `--node-args` requires Node.js `>=22.10.0`;
 - `--node-args` cannot be used with `--isolation none`;
 - `--source-dir` and `--dist-dir` are not supported.
+
+Example:
+
+```sh
+fwa --node-args --no-warnings --conditions=development
+fwa ./packages/example --node-args --no-warnings
+```
 
 ## Public API
 
