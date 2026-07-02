@@ -1,19 +1,30 @@
 {
   "name": "fwa",
-  "version": "2.0.4",
-  "description": "Progressive suite test runner using Node.js",
-  "keywords": [
-    "test",
-    "suite"
-  ],
-  "license": "MIT",
+  "version": "2.0.5",
+  "private": false,
+  "description": "Compiled TypeScript test runner for Node.js",
   "author": {
     "name": "Stanislav Potemkin",
     "email": "woodger@ya.ru"
   },
+  "license": "MIT",
+  "keywords": [
+    "test",
+    "testing",
+    "test-runner",
+    "node-test",
+    "typescript",
+    "compiled-tests",
+    "test-discovery",
+    "stale-tests",
+    "cli"
+  ],
   "repository": {
     "type": "git",
-    "url": "git@github.com:woodger/fwa.git"
+    "url": "git+ssh://git@github.com/woodger/fwa.git"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,9 +35,6 @@
     "build": "tsc",
     "test": "node dist/bin.js",
     "lint": "eslint src eslint.config.mjs"
-  },
-  "engines": {
-    "node": ">=20.19.0"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"
