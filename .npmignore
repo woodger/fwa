@@ -4,4 +4,5 @@ eslint.config.mjs
 docs/
 src/
 tsconfig.json
+**/*.map
 **/*.test.*
