@@ -20,7 +20,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/woodger/fwa.git"
+    "url": "git+https://git@github.com/woodger/fwa.git"
   },
   "engines": {
     "node": ">=20.19.0"
