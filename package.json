@@ -1,12 +1,7 @@
 {
   "name": "fwa",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Compiled TypeScript test runner for Node.js",
-  "author": {
-    "name": "Stanislav Potemkin",
-    "email": "woodger@ya.ru"
-  },
-  "license": "MIT",
   "keywords": [
     "test",
     "testing",
@@ -18,6 +13,11 @@
     "stale-tests",
     "cli"
   ],
+  "author": {
+    "name": "Stanislav Potemkin",
+    "email": "woodger@ya.ru"
+  },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/woodger/fwa.git"
@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc",
     "test": "node dist/bin.js",
-    "lint": "eslint src eslint.config.mjs"
+    "lint": "eslint src"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"
