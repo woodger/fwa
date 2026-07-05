@@ -24,8 +24,11 @@ fwa ./packages/example --project tsconfig.test.json
 `compilerOptions.outDir` is required because `fwa` runs compiled JavaScript
 tests. Without `outDir`, compiled output location is ambiguous for this runner.
 
-`compilerOptions.rootDir` is optional. If it is omitted, `fwa` uses the
-TypeScript parser default.
+`compilerOptions.rootDir` is optional. If it is omitted, `fwa` treats the
+directory containing `tsconfig.json` as the source root.
+
+For stable source-to-output mapping, set `compilerOptions.rootDir` explicitly.
+In most projects this is usually `"src"` or `"."`.
 
 `fwa` uses the TypeScript config parser, so `extends`, relative compiler
 options, and config diagnostics follow TypeScript behavior.

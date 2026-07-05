@@ -35,7 +35,7 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(projectDir, 'build'));
   });
 
-  test('uses TypeScript rootDir default when rootDir is not configured', (t) => {
+  test('uses tsconfig directory as source root when rootDir is not configured', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
