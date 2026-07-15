@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.7
+
+- Clarified the documented `rootDir` fallback when `compilerOptions.rootDir`
+  is omitted.
+- Renamed the related test so it describes `fwa` behavior instead of the
+  TypeScript parser default.
+
 ## 2.0.6
 
 - Added this changelog with reconstructed package history.
@@ -83,4 +90,5 @@
 
 ## 0.0.0
 
-- Published the initial npm package placeholder.
+- Published the initial npm package.
+- The corresponding source snapshot is not present in the current git history.
