@@ -11,10 +11,10 @@ Forbidden:
 - large refactoring without a request
 - cleanup without justification
 - style changes outside the affected area
-- architecture changes
-- pipeline changes
-- scripts changes
-- behavior changes
+- architecture changes not required by the task
+- pipeline or script changes not required by the task
+- behavior changes outside the required scenario
+- public contract changes that are not explicit or unavoidable
 
 Existing code is considered intentional.
 
@@ -29,12 +29,12 @@ Allowed:
 - remove local duplication
 - improve naming
 - simplify readability
-- fix a nearby obvious defect
+- fix a nearby defect only when it blocks the required result
 - improve local tests
 
 Conditions:
 
-- behavior does not change
+- behavior does not change outside the required scenario
 - the change remains local
 - the improvement helps solve the current task
 
@@ -63,7 +63,7 @@ Allowed:
 
 - fix poor local naming
 - clarify a module responsibility
-- move a small amount of code to improve readability
+- move a small amount of code when the task requires clarifying responsibility
 
 Not allowed:
 
@@ -81,6 +81,9 @@ Not allowed:
 
 Environment issues are not a reason to change project code.
 
-If validation cannot run because of missing tools, permissions, cache, shell utilities, or container limitations, stop, describe the problem, and ask for a decision.
+If validation cannot run because of missing tools, permissions, cache, shell
+utilities, or container limitations, first try a safe equivalent command that
+preserves the intended check. If the limitation still materially blocks the
+task, stop, describe it, and ask for a decision.
 
 Using a local temporary cache/workdir is allowed only if it does not change the project and does not expand the task scope.

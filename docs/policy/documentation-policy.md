@@ -1,27 +1,44 @@
 # Documentation Policy
 
-> Type: Policy. This document defines rules for choosing the documentation source of truth and forbids duplicating code contracts in permanent reference pages.
+> Type: Policy. This document defines how user guides, contributor policies, and
+> executable contracts stay consistent.
 
-## Purpose
+## Source Of Truth
 
-Documentation must help find the current contract, not create a second source of truth next to the code.
+Runtime behavior, exported declarations, configuration, and tests are the
+authoritative contracts. Markdown explains how users and contributors apply
+those contracts.
 
-If a contract is already expressed by a runtime mechanism, source file, config file, or tests, a Markdown document must link to that source and explain the working route instead of copying the full reference.
+User-facing documentation may restate concise CLI output, option shapes,
+diagnostics, and examples when that makes the package usable. Such material must
+match the implementation and be updated in the same change when behavior
+changes. Generated declarations and exhaustive internal details should not be
+copied into permanent guides.
 
 ## README And Docs
 
-README must remain a concise entry point to the project:
+README is the concise package entry point:
 
 - installation;
 - quick start;
-- main links;
-- important workflows.
+- main documentation links;
+- important workflows and constraints.
 
-Detailed rules and policies must live in `docs/`.
+Detailed CLI, TypeScript config, stale-artifact, API, and contributor guidance
+lives in `docs/`. Navigation pages should organize those documents instead of
+repeating their contents.
 
-Navigation documents must help find the source of truth, not become a second README.
+Each behavior guide should identify the relevant implementation or exported
+declaration. Exact diagnostics or help text copied into a guide should be
+covered by tests or checked against generated output.
+
+## Release Documentation
+
+README links target documentation on the stable `main` branch. Because `docs/`
+is excluded from the npm package, `main` must contain the matching documentation
+before a package version is published.
 
 ## Minimum Rule
 
-Markdown must answer the question "where is the current contract and how should it
-be used". The contract itself must live where it is verified by runtime or tests.
+Documentation must answer what the supported workflow is, where its executable
+contract lives, and which limitations are observable to users.

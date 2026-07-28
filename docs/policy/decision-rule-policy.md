@@ -2,30 +2,31 @@
 
 > Type: Policy. This document defines the baseline filter before any code change.
 
-If the change is not required, do not make it.
+Make a change only when it is required by the task, by a contract the task
+touches, or by a defect that blocks the required result.
 
-If the change adds behavior, do not make it.
+Required changes may add, remove, or alter behavior. Limit them to the requested
+scenario and preserve unrelated public contracts.
 
-If the change removes behavior, do not make it.
+Do not make a change only because "this is how it is usually done", because it
+seems safe, or because it seems cleaner. Those observations can influence an
+implementation choice, but they are not requirements by themselves.
 
-If the change is made because "this is how it is usually done", do not make it.
+Existing behavior is considered intentional until the repository, a failing
+observable contract, or the task provides evidence otherwise.
 
-If the change seems safe, do not make it.
-
-If the change seems correct, do not make it.
-
-If there is doubt, leave the code as it is.
-
-Existing code is considered intentional.
+If material uncertainty remains after inspecting the repository, ask for
+clarification instead of choosing a behavior or architecture speculatively.
 
 ## Practical Application
 
 Before making a change, check the following in order:
 
 1. Is the change directly required by the task?
-2. Does it change behavior, pipeline, or project structure?
-3. Can the task be solved with a smaller change?
-4. Is the decision based on a heuristic instead of a requirement?
+2. Which observable contract or required result does it affect?
+3. Does it change behavior, pipeline, public API, persistence, or project structure?
+4. Can the task be solved with a smaller change?
+5. Is any part justified only by a heuristic instead of a requirement?
 
 ## Examples
 

@@ -2,31 +2,26 @@
 
 > Type: Policy. This document defines criteria for choosing new libraries and signs of undesirable dependencies.
 
-Only high-quality libraries are allowed.
+Dependencies may be added or changed only when the task requires them and the
+standard library or existing project dependencies do not cover the need safely.
 
 A library must:
 
-- solve a broad problem
-- have a clear API
-- be maintained
-- provide architectural value
-- be justified long term
+- have a clear and stable API;
+- be actively maintained for the supported runtime;
+- have acceptable security and licensing characteristics;
+- have a justified runtime, install-size, and maintenance cost;
+- fit the existing dependency and TypeScript version policy.
 
 Undesirable dependencies:
 
-- a package for one function
-- a package for deleting files
-- a package for a small utility
-- a package wrapper over a standard function
+- a package that duplicates the standard library or an existing dependency;
+- a package for trivial functionality that is clearer to keep local;
+- an unmaintained or security-sensitive package without a documented reason;
+- a broad library when only a small unrelated part would be used.
 
-Bad example:
-
-rimraf
-
-Good example:
-
-a general-purpose filesystem library
-with a complete API
+A focused package is not automatically worse than a broad one. Choose the
+smallest maintained dependency that reduces current risk and complexity.
 
 ## Selection Examples
 
@@ -35,6 +30,8 @@ Allowed:
 - add a library that covers a stable infrastructure task and is already needed in several places
 - choose a dependency with a clear support model and understandable documentation
 - prefer the standard library if it covers the task without architectural losses
+- choose a focused library when implementing the same behavior locally would be
+  materially riskier
 
 Not allowed:
 
@@ -46,4 +43,4 @@ Not allowed:
 
 - before adding a dependency, state which long-term task it solves
 - check whether the task can be covered by existing project libraries
-- evaluate not only API convenience but also the maintenance cost of the dependency
+- evaluate maintenance, security, licensing, runtime, and package-size impact

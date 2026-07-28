@@ -2,14 +2,27 @@
 
 ## 2.0.7
 
-- Clarified the documented `rootDir` fallback when `compilerOptions.rootDir`
-  is omitted.
-- Renamed the related test so it describes `fwa` behavior instead of the
-  TypeScript parser default.
+- Restricted `--prune` to dedicated output directories inside the selected
+  project root, including protection against symlinks to external directories.
+- Deferred stale compiled test deletion until every remaining compiled test
+  passes freshness validation.
+- Made test discovery and diagnostics use locale-independent deterministic
+  ordering.
+- Stopped the default TypeScript config lookup from searching parent
+  directories and made an omitted `rootDir` resolve to the directory containing
+  the selected config.
+- Routed custom log callbacks consistently for stale-test and empty-suite
+  diagnostics.
+- Reduced `--help` and `--version` startup work by loading suite infrastructure
+  only when tests are executed.
+- Routed native test-runner output, stream errors, and exit-code updates through
+  explicit runtime dependencies.
+- Aligned the CLI, programmatic API, and stale-artifact guides with current
+  runtime behavior.
 
 ## 2.0.6
 
-- Added this changelog with reconstructed package history.
+- Reconstructed the changelog history for the previous 2.0.x releases.
 
 ## 2.0.5
 

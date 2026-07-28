@@ -15,4 +15,5 @@ TypeScript/JavaScript code uses the following rules:
 - `camelCase` - variables, functions, values, exported const values;
 - `PascalCase` - classes, types, interfaces, enums;
 - `kebab-case` - runtime names and file names;
-- `SCREAMING_SNAKE_CASE` / `ALL_CAPS` - forbidden for internal project identifiers.
+- `SCREAMING_SNAKE_CASE` / `ALL_CAPS` - reserved for external conventions such
+  as environment variable names; internal constants normally use `camelCase`.

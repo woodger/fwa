@@ -97,6 +97,7 @@ Rules:
 - `--node-args` must be the last `fwa` option;
 - `--node-args` requires Node.js `>=22.10.0`;
 - `--node-args` cannot be used with `--isolation none`;
+- `--help`, `-h`, `--version`, and `-v` must be used as standalone arguments;
 - `--source-dir` and `--dist-dir` are not supported.
 
 ## Exit Code Behavior

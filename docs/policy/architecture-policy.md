@@ -1,277 +1,191 @@
 # Architecture Policy
 
-> Type: Policy. This document defines constraints on dependency direction, layer boundaries, and file placement rules.
+> Type: Policy. This document defines the current module boundaries, dependency
+> direction, and file placement rules for `fwa`.
 
-The project uses Clean Architecture Lite.
+## Current Structure
 
-Dependencies point inward.
+`fwa` is a small layered Node.js CLI and library. It currently has these
+responsibility groups:
 
 ```text
-Domain
-^
-Application
-^
-Infrastructure
-^
-Bootstrap
+config and shared value types
+            ^
+        application
+            ^
+      infrastructure
+            ^
+         bootstrap
+            ^
+    bin and public index
 ```
 
-This means:
+The diagram is a responsibility overview, not a requirement that every module
+import the layer immediately below it. Actual allowed imports are:
 
-- `domain` does not know about the outside world;
-- `application` coordinates scenarios and depends on abstractions;
-- `infrastructure` implements technical details and external integrations;
-- `bootstrap` assembles the application, configuration, CLI, and runtime dependencies.
+- `config.ts` and `config.types.ts` do not depend on application,
+  infrastructure, or bootstrap;
+- `application` may depend on config and shared value types;
+- `infrastructure` may depend on config, shared value types, and type contracts
+  declared by application;
+- `bootstrap` may depend on application, infrastructure, config, and shared
+  value types;
+- `bin.ts` and `index.ts` may depend on bootstrap and the public application
+  types they expose.
 
-## Dependency Direction
+Inner modules must not import bootstrap. Application must not import
+infrastructure. A new dependency direction requires an explicit architectural
+reason.
 
-Forbidden:
+The repository does not currently define separate `domain`, `internal`, or
+`contracts` layers. Do not create them merely to match a generic architecture
+template.
 
-- violate dependency direction;
-- import an outer layer into an inner layer;
-- add dependencies to `domain`;
-- move code between layers without an architectural reason;
-- simplify architecture by merging layers;
-- move business rules into technical layers to reduce the number of files.
+## Config And Shared Value Types
 
-Allowed:
+Files:
 
-- `infrastructure` implements an interface declared in `application` or `domain`;
-- `bootstrap` assembles dependencies and passes them into `application`;
-- `application` coordinates a use case without knowing data storage, HTTP, CLI, Python processes, or external API details;
-- `domain` contains pure rules, calculations, and domain models.
+- `src/config.ts`;
+- `src/config.types.ts`.
 
-Not allowed:
+Responsibilities:
 
-- import `infrastructure` into `domain`;
-- import `bootstrap` into `application`, `domain`, or `infrastructure`;
-- put environment initialization code into `domain` or `application`;
-- move business rules into `bootstrap`;
-- put transport-specific, provider-specific, or filesystem-specific code into `domain`.
+- supported file extensions;
+- default runner behavior;
+- small value types shared across layers.
 
-## Layer Responsibilities
+These files must remain free of filesystem access, process state, TypeScript
+compiler calls, CLI parsing, and suite orchestration.
 
-### `domain`
+## Application
 
-Contains pure domain logic.
+Directory:
 
-Allowed here:
+- `src/application/`.
 
-- pure test-runner rules and policies;
-- models describing source and compiled tests;
-- deterministic test selection and validation rules that do not perform IO.
+Responsibilities:
 
-Must not contain:
+- public and resolved suite option contracts;
+- use-case execution order;
+- scenario decisions such as handling an empty runnable set;
+- scenario-level diagnostic content;
+- injected contracts for filesystem and process effects.
 
-- CLI, `node:test`, TypeScript compiler API, filesystem, or process access;
-- env/config reads;
-- user output formatting;
-- use-case orchestration;
-- infrastructure serialization;
-- generic helpers without domain meaning.
+Application code may call injected functions such as `log`, `setExitCode`, or
+`runTestFiles`. It must not directly access the filesystem, `process`,
+`console`, the TypeScript compiler API, or `node:test`.
 
-### `application`
+## Infrastructure
 
-Contains application scenarios.
+Directory:
 
-Allowed here:
+- `src/infrastructure/`.
 
-- use cases;
-- application services;
-- ports;
-- report/output contracts;
-- DTOs;
-- scenario errors;
-- orchestration between domain logic and ports.
+Responsibilities:
 
-Must not contain:
-
-- direct work with CLI, `node:test`, TypeScript compiler API, filesystem, or process state;
-- transport-specific mapping;
-- Node.js-version-specific runtime checks;
-- CLI output formatting;
-- stdout/file sinks for reports;
-- pure domain mathematics if it can live in `domain`.
-
-### `infrastructure`
-
-Contains implementation of the outside world.
-
-Allowed here:
-
-- adapters;
-- filesystem IO;
+- filesystem discovery and validation;
+- source-to-output path mapping;
 - TypeScript config parsing;
-- Node.js runtime capability checks;
+- Node.js capability checks;
 - native `node:test` integration;
-- technical path normalization.
+- deterministic technical diagnostics associated with those operations.
 
-Must not contain:
+Infrastructure may construct errors and diagnostic text for technical
+validation. It must not parse CLI arguments, choose commands, or terminate the
+process. Process output and exit-code ownership stay in bootstrap when the
+public runner is used.
 
-- business rules;
-- scenario decisions of use cases;
-- pure domain logic;
-- CLI parsing or user-facing output decisions.
+Infrastructure modules should expose results, errors, streams, or explicit
+dependencies instead of hiding new global side effects.
 
-### `bootstrap`
+## Bootstrap
 
-Contains application assembly and startup.
+Directory:
 
-Allowed here:
+- `src/bootstrap/`.
 
-- CLI parsing;
-- command registry;
-- help/version rendering;
-- runtime options;
-- config resolving;
-- composition root;
-- wiring use cases to adapters;
-- CLI reporters that format application report contracts for users.
+Responsibilities:
 
-Must not contain:
+- CLI option parsing and help rendering;
+- resolving external options into application input;
+- checking combinations of runtime options;
+- assembling application and infrastructure functions;
+- binding stdout, stderr, logging, and exit-code effects.
 
-- domain calculations;
-- business rules;
-- direct implementation of ports;
-- logic that can be reused outside application startup.
+Small inline closures that connect process APIs to application dependencies are
+part of composition and are allowed here. Reusable discovery, validation, or
+test-execution logic belongs in application or infrastructure.
 
-### `internal`
+## Entrypoints
 
-Contains internal generic utilities that are not part of the domain.
+Files:
 
-Allowed here:
+- `src/bin.ts` is the executable process adapter;
+- `src/index.ts` defines the package-root public API.
 
-- generic collections;
-- generic guards;
-- generic formatting helpers;
-- byte-size helpers;
-- low-level process helpers;
-- technical functions without domain language.
+`bin.ts` may read argv, the working directory, package metadata, and process
+streams. CLI parsing remains in bootstrap. Expensive suite infrastructure
+should stay lazily loaded so `--help` and `--version` remain lightweight.
 
-Must not contain:
+Only exports reachable from `src/index.ts` are supported programmatic API.
+Files emitted under `dist/` are not independently public.
 
-- business rules;
-- use-case orchestration;
-- transport-specific code;
-- provider-specific code.
+## Diagnostics And Side Effects
 
-## File Placement Rule
+Ownership is split by responsibility:
 
-Before creating, moving, or renaming a file, its layer must be identified:
+- application decides scenario outcomes and invokes injected effects;
+- infrastructure reports technical validation and native runner events;
+- bootstrap binds those effects to `console`, process streams, and
+  `process.exitCode`;
+- `bin.ts` adapts the real CLI process to bootstrap.
 
-- `domain`;
-- `application`;
-- `infrastructure`;
-- `bootstrap`;
-- `internal`;
-- `docs`;
-- `contracts`.
+Do not move a process-level side effect inward merely to reduce the number of
+parameters. Do not move technical filesystem or Node.js behavior outward merely
+to keep all messages in one file.
 
-A file must not be placed by the principle of "where it is more convenient" or "next to similar code" if that violates the layer responsibility.
+## File Placement
 
-If the layer cannot be identified unambiguously, the change is architecturally ambiguous. In this case, stop and ask for clarification instead of creating a file intuitively.
+Place new code beside the responsibility it extends:
 
-## Directory Creation Rule
+- use-case contracts and orchestration in `application`;
+- filesystem, TypeScript, path, and Node.js adapters in `infrastructure`;
+- CLI parsing and runtime composition in `bootstrap`;
+- package-wide static defaults or shared value types at the existing config
+  boundary;
+- process and package exports only in the existing entrypoints.
 
-Creating a new directory is an architectural change.
+If code spans responsibilities, first look for an existing injected contract.
+Create a new boundary only when the task requires it and the ownership cannot be
+expressed clearly with the current structure.
 
-A new directory is allowed only if:
+## File And Directory Naming
 
-- the task explicitly requires a new directory;
-- the directory is already described in architecture documentation;
-- the change also adds or updates documentation explaining the directory role.
+Production filenames use descriptive `kebab-case` names that match nearby
+modules, for example:
 
-Creating a directory only for convenient file grouping is forbidden.
+- `run-suite.ts`;
+- `node-test.ts`;
+- `test-files.ts`;
+- `tsconfig-directories.ts`.
 
-New generic directories without an explicit architectural role are forbidden:
+Tests use the corresponding `*.test.ts` name. Suffixes such as `adapter`,
+`service`, or `use-case` are not mandatory when the existing project vocabulary
+already describes the role clearly.
 
-- `utils`;
-- `helpers`;
-- `common`;
-- `shared`;
-- `misc`;
-- `wiring`;
-- `lib`.
+A new directory is justified only by a cohesive responsibility required by the
+current task. Generic dumping grounds such as `utils`, `helpers`, `common`,
+`shared`, or `misc` are not acceptable without a specific, documented role.
 
-If such a directory already exists, this does not permit adding new code there. First check whether the directory is technical debt.
+When a change introduces a real new architectural boundary, update this
+document in the same change.
 
-## File Naming Rule
+## Change Rule
 
-A file name must reflect its architectural role.
+Architectural changes must be minimal and tied to a task requirement. Preserve
+public API, runtime semantics, startup order, output ownership, and dependency
+direction unless the task explicitly requires changing them.
 
-For new files, use existing project suffixes when they fit:
-
-- `*.use-case.ts` - application use case;
-- `*.service.ts` - application/domain service;
-- `*.port.ts` - application port;
-- `*.report.ts` - application report/output contract;
-- `*.adapter.ts` - infrastructure adapter;
-- `*.policy.ts` - rule or policy;
-- `*.validator.ts` - validator;
-- `*.mapper.ts` - mapper between layers or formats;
-- `*.reporter.ts` - CLI/output reporter implementation;
-- `*.middleware.ts` - HTTP middleware;
-- `*.routes.ts` - HTTP routes;
-- `*.controller.ts` - HTTP/controller entrypoint;
-- `*.request.ts` - transport request DTO;
-- `*.response.ts` - transport response DTO;
-- `*.test.ts` - test.
-
-If no suffix fits, this is a signal that the file role is not defined. In that case, define the role first instead of inventing a new abstract name.
-
-Using non-obvious author-specific names is forbidden if the file purpose cannot be understood without reading the implementation.
-
-## File Move Rule
-
-Moving a file between layers is allowed only when there is a reason.
-
-Allowed reasons:
-
-- the file is in the wrong layer;
-- the file contains logic that belongs to another layer;
-- the file violates dependency direction;
-- the file is a generic utility and is incorrectly located in `domain`;
-- the file is an infrastructure detail and is incorrectly located in `domain` or `application`;
-- the file is business/domain logic and is incorrectly located in `bootstrap` or `infrastructure`.
-
-Not allowed reasons:
-
-- "this is prettier";
-- "this makes imports shorter";
-- "this groups files more conveniently";
-- "Codex suggested it";
-- "there is already a similar file nearby";
-- "this can reduce the number of directories".
-
-## Minimal Change Rule
-
-Architectural refactoring must be minimal.
-
-It is forbidden to combine the following in one change:
-
-- move files;
-- rename entities;
-- change public API;
-- change behavior;
-- rewrite implementation;
-- change test pipeline.
-
-If several types of changes are required, they are performed as separate steps.
-
-## Clarification First
-
-If a change affects a layer, directory, file name, or dependency direction, and the correct decision is not obvious, clarify the architectural intent first.
-
-Guessing placement is forbidden.
-
-It is better to stop and ask a question than to create a file in the wrong place.
-
-## Good Practices
-
-- check new dependencies against layer direction first;
-- keep business rules in the layers where they already live architecturally;
-- localize integration details in `infrastructure` and `bootstrap`;
-- do not put generic utilities into `domain`;
-- before creating a file, check existing naming patterns;
-- before creating a directory, check whether it is described in architecture documentation;
-- handle disputed changes as a separate small refactoring step.
+Do not combine unrelated file moves, renames, behavior changes, public API
+changes, or pipeline changes. When several are all necessary, keep them as
+separate reviewable steps within the task.

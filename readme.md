@@ -1,4 +1,3 @@
-
 # fwa
 
 [![npm version](https://img.shields.io/npm/v/fwa.svg)](https://www.npmjs.com/package/fwa)
@@ -47,7 +46,7 @@ already exist in `outDir`.
 
 ## When To Use
 
-Use `fwa` when a project:
+Use `fwa` when a project needs a runner that:
 
 - reads `rootDir` and `outDir` from TypeScript config;
 - recursively finds compiled `*.test.js` and `*.spec.js` files;
@@ -55,6 +54,3 @@ Use `fwa` when a project:
 - prunes those files only when `--prune` is used;
 - fails when source tests are newer than compiled tests;
 - passes the final file list to native `node:test`.
-
-It does not replace `node:test`. It prepares a safe file list before delegating
-execution to the native Node.js test runner.
