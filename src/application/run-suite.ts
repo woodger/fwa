@@ -116,16 +116,14 @@ export function runSuiteUseCase(
   options: ResolvedSuiteRunnerOptions,
   dependencies: RunSuiteUseCaseDependencies
 ): void {
+  const log = options.log ?? dependencies.warn;
   const checkOptions: CompiledTestCheckOptions = {
     distDir: options.distDir,
     sourceDir: options.sourceDir,
     projectDir: options.projectDir,
-    prune: options.prune
+    prune: options.prune,
+    log
   };
-
-  if (options.log !== undefined) {
-    checkOptions.log = options.log;
-  }
 
   dependencies.assertDirectory(options.distDir, 'distDir', options.projectDir);
   dependencies.assertDirectory(options.sourceDir, 'sourceDir', options.projectDir);
@@ -143,7 +141,7 @@ export function runSuiteUseCase(
   );
 
   if (!testFiles.length) {
-    dependencies.warn(
+    log(
       `No test files found in ${dependencies.toProjectPath(options.distDir, options.projectDir) || '.'}`
     );
     dependencies.setExitCode(1);

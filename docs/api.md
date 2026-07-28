@@ -45,6 +45,9 @@ runSuite({
 
 Pruning is disabled by default.
 
+For safety, pruning requires the configured `outDir` to be a dedicated
+directory inside `projectDir`.
+
 ## Node.js Test Runner Options
 
 Disable process isolation:

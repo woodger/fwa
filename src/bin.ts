@@ -12,11 +12,14 @@
  */
 
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 
+import type { SuiteRunnerOptions } from './application/run-suite';
 import { runCli } from './bootstrap/cli';
-import { runSuite } from './bootstrap/suite';
+
+const loadModule = createRequire(__filename);
 
 function readPackageVersion(packageFile: string): string {
   const packageJson: unknown = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
@@ -27,6 +30,14 @@ function readPackageVersion(packageFile: string): string {
   }
 
   return version;
+}
+
+function runSuite(options: SuiteRunnerOptions): void {
+  // Keep help and version lightweight by loading TypeScript-backed suite
+  // infrastructure only when test execution is actually requested.
+  const suiteModule = loadModule('./bootstrap/suite') as typeof import('./bootstrap/suite');
+
+  suiteModule.runSuite(options);
 }
 
 runCli({

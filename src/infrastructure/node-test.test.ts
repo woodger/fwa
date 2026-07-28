@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import process from 'node:process';
 import nodeTest, {
   describe,
   test,
@@ -14,6 +13,17 @@ import { supportsNodeTestIsolation } from './node-runtime';
 
 type StreamListener = (...args: unknown[]) => void;
 
+type RuntimeHarness = {
+  dependencies: {
+    output: NodeJS.WritableStream;
+    reportError(error: unknown): void;
+    setExitCode(code: number): void;
+  };
+  errors: unknown[];
+  exitCodes: number[];
+  output: NodeJS.WritableStream;
+};
+
 type TestStreamHarness = {
   stream: TestsStream;
   emitReporter(event: string, ...args: unknown[]): void;
@@ -21,6 +31,27 @@ type TestStreamHarness = {
   getComposedReporter(): unknown;
   getPipeDestination(): unknown;
 };
+
+function createRuntimeHarness(): RuntimeHarness {
+  const errors: unknown[] = [];
+  const exitCodes: number[] = [];
+  const output = {} as NodeJS.WritableStream;
+
+  return {
+    dependencies: {
+      output,
+      reportError: (error) => {
+        errors.push(error);
+      },
+      setExitCode: (code) => {
+        exitCodes.push(code);
+      }
+    },
+    errors,
+    exitCodes,
+    output
+  };
+}
 
 function createTestStreamHarness(): TestStreamHarness {
   const reporterListeners = new Map<string, StreamListener>();
@@ -72,12 +103,13 @@ function createTestStreamHarness(): TestStreamHarness {
 describe('runNodeTestFiles', () => {
   test('runs selected files through the native test runner and spec reporter', (t) => {
     const harness = createTestStreamHarness();
+    const runtime = createRuntimeHarness();
     const run = t.mock.method(nodeTest, 'run', () => harness.stream);
     const testFiles = [
       '/project/dist/example.test.js'
     ];
 
-    runNodeTestFiles(testFiles, 'process', []);
+    runNodeTestFiles(testFiles, 'process', [], runtime.dependencies);
 
     const expectedOptions: RunOptions = {
       files: testFiles,
@@ -90,57 +122,61 @@ describe('runNodeTestFiles', () => {
 
     assert.deepStrictEqual(run.mock.calls[0]?.arguments, [expectedOptions]);
     assert.strictEqual(harness.getComposedReporter(), spec);
-    assert.strictEqual(harness.getPipeDestination(), process.stdout);
+    assert.strictEqual(harness.getPipeDestination(), runtime.output);
   });
 
   test('sets exit code when the native test runner reports a failure', (t) => {
-    const previousExitCode = process.exitCode;
     const harness = createTestStreamHarness();
+    const runtime = createRuntimeHarness();
 
-    t.after(() => {
-      process.exitCode = previousExitCode;
-    });
     t.mock.method(nodeTest, 'run', () => harness.stream);
 
-    runNodeTestFiles(['/project/dist/example.test.js'], 'process', []);
+    runNodeTestFiles(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      runtime.dependencies
+    );
     harness.emitTest('test:fail');
 
-    assert.strictEqual(process.exitCode, 1);
+    assert.deepStrictEqual(runtime.exitCodes, [1]);
   });
 
   test('reports native test stream errors and sets exit code', (t) => {
-    const previousExitCode = process.exitCode;
     const harness = createTestStreamHarness();
+    const runtime = createRuntimeHarness();
     const error = new Error('native test stream failed');
-    const consoleError = t.mock.method(console, 'error', () => undefined);
 
-    t.after(() => {
-      process.exitCode = previousExitCode;
-    });
     t.mock.method(nodeTest, 'run', () => harness.stream);
 
-    runNodeTestFiles(['/project/dist/example.test.js'], 'process', []);
+    runNodeTestFiles(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      runtime.dependencies
+    );
     harness.emitTest('error', error);
 
-    assert.strictEqual(process.exitCode, 1);
-    assert.deepStrictEqual(consoleError.mock.calls[0]?.arguments, [error]);
+    assert.deepStrictEqual(runtime.exitCodes, [1]);
+    assert.deepStrictEqual(runtime.errors, [error]);
   });
 
   test('reports spec reporter errors and sets exit code', (t) => {
-    const previousExitCode = process.exitCode;
     const harness = createTestStreamHarness();
+    const runtime = createRuntimeHarness();
     const error = new Error('spec reporter failed');
-    const consoleError = t.mock.method(console, 'error', () => undefined);
 
-    t.after(() => {
-      process.exitCode = previousExitCode;
-    });
     t.mock.method(nodeTest, 'run', () => harness.stream);
 
-    runNodeTestFiles(['/project/dist/example.test.js'], 'process', []);
+    runNodeTestFiles(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      runtime.dependencies
+    );
     harness.emitReporter('error', error);
 
-    assert.strictEqual(process.exitCode, 1);
-    assert.deepStrictEqual(consoleError.mock.calls[0]?.arguments, [error]);
+    assert.deepStrictEqual(runtime.exitCodes, [1]);
+    assert.deepStrictEqual(runtime.errors, [error]);
   });
 });

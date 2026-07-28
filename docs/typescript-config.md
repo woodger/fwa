@@ -9,6 +9,9 @@ By default, it reads:
 <project-root>/tsconfig.json
 ```
 
+The default lookup does not search parent directories. Use `--project`
+explicitly when the config lives elsewhere.
+
 Use `--project` to select a different config file or a directory containing
 `tsconfig.json`:
 

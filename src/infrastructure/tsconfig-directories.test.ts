@@ -119,6 +119,38 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(packageDir, 'dist'));
   });
 
+  test('does not use a parent TypeScript config by default', (t) => {
+    const parentDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const projectDir = path.join(parentDir, 'packages', 'feature');
+
+    t.after(() => {
+      fs.rmSync(parentDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(parentDir, 'src'), { recursive: true });
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.writeFileSync(path.join(parentDir, 'src', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(parentDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 'dist'
+        },
+        include: [
+          'src/**/*.ts'
+        ]
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /Cannot find tsconfig\.json/
+    );
+  });
+
   test('throws when tsconfig does not define outDir', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 

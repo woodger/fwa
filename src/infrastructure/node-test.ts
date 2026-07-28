@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { run, type RunOptions } from 'node:test';
 import { spec } from 'node:test/reporters';
 
@@ -10,17 +9,23 @@ import {
   supportsNodeTestIsolation
 } from './node-runtime';
 
+export type RunNodeTestFilesDependencies = {
+  output: NodeJS.WritableStream;
+  reportError(error: unknown): void;
+  setExitCode(code: number): void;
+};
+
 /**
  * Runs compiled JS tests through the native Node.js test runner.
  *
- * The adapter intentionally does not call process.exit() so it can be safely
- * used from tests or other bootstrap scenarios. Process status is set
- * through process.exitCode.
+ * Process status, diagnostics, and output destinations are supplied by
+ * bootstrap so the adapter does not own global process side effects.
  */
 export function runNodeTestFiles(
   testFiles: string[],
   isolation: TestIsolation,
-  nodeArgs: readonly string[]
+  nodeArgs: readonly string[],
+  dependencies: RunNodeTestFilesDependencies
 ): void {
   const runOptions: RunOptions = {
     files: testFiles,
@@ -43,19 +48,19 @@ export function runNodeTestFiles(
   const testStream = run(runOptions);
 
   testStream.on('test:fail', () => {
-    process.exitCode = 1;
+    dependencies.setExitCode(1);
   });
 
   testStream.on('error', (error) => {
-    process.exitCode = 1;
-    console.error(error);
+    dependencies.setExitCode(1);
+    dependencies.reportError(error);
   });
 
   testStream
     .compose(spec)
     .on('error', (error) => {
-      process.exitCode = 1;
-      console.error(error);
+      dependencies.setExitCode(1);
+      dependencies.reportError(error);
     })
-    .pipe(process.stdout);
+    .pipe(dependencies.output);
 }
