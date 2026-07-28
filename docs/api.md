@@ -87,6 +87,17 @@ during exclusion.
 
 ## Node.js Test Runner Options
 
+`runSuite` uses the Node.js executable of the current process. It does not
+accept an external Node.js executable or manage another runtime.
+
+With `isolation: 'process'`, native test child processes use the current
+runtime. With `isolation: 'none'`, tests run in the current process. `nodeArgs`
+changes only the flags passed to isolated child processes.
+
+A `runSuite` call confirms behavior only on that runtime. Compatibility with
+other Node.js versions must be verified separately by the consuming project's
+CI matrix.
+
 Disable process isolation:
 
 ```ts
