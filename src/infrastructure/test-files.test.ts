@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import { describe, test } from 'node:test';
 
 import {
@@ -52,14 +53,15 @@ describe('test-files', () => {
       ]);
     });
 
-    test('returns files in deterministic order', (t) => {
+    test('returns files in locale-independent order', (t) => {
       const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
       t.after(() => {
         fs.rmSync(rootDir, { recursive: true, force: true });
       });
 
-      fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
+      fs.writeFileSync(path.join(rootDir, 'ä.test.js'), '');
+      fs.writeFileSync(path.join(rootDir, 'z.test.js'), '');
       fs.writeFileSync(path.join(rootDir, 'a.test.js'), '');
 
       const files = collectTestFiles(rootDir, '.test.js')
@@ -67,7 +69,8 @@ describe('test-files', () => {
 
       assert.deepStrictEqual(files, [
         'a.test.js',
-        'b.test.js'
+        'z.test.js',
+        'ä.test.js'
       ]);
     });
 
@@ -239,6 +242,163 @@ describe('test-files', () => {
           '- dist/orphan.test.js'
         ].join('\n')
       ]);
+    });
+
+    test('does not prune compiled tests outside the project', (t) => {
+      const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+      const projectDir = path.join(workspaceDir, 'project');
+      const distDir = path.join(workspaceDir, 'outside');
+      const sourceDir = path.join(projectDir, 'src');
+
+      t.after(() => {
+        fs.rmSync(workspaceDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(distDir, { recursive: true });
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      const compiledFile = path.join(distDir, 'orphan.test.js');
+      fs.writeFileSync(compiledFile, '');
+
+      assert.throws(
+        () => {
+          checkCompiledTests(
+            [compiledFile],
+            {
+              distDir,
+              sourceDir,
+              projectDir,
+              prune: true
+            }
+          );
+        },
+        /--prune requires distDir to be a dedicated directory inside projectDir/
+      );
+
+      assert.strictEqual(fs.existsSync(compiledFile), true);
+    });
+
+    test('does not prune through a symlink outside the project', (t) => {
+      const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+      const projectDir = path.join(workspaceDir, 'project');
+      const outsideDir = path.join(workspaceDir, 'outside');
+      const distDir = path.join(projectDir, 'dist');
+      const sourceDir = path.join(projectDir, 'src');
+
+      t.after(() => {
+        fs.rmSync(workspaceDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(sourceDir, { recursive: true });
+      fs.mkdirSync(outsideDir, { recursive: true });
+      fs.symlinkSync(
+        outsideDir,
+        distDir,
+        process.platform === 'win32' ? 'junction' : 'dir'
+      );
+
+      const compiledFile = path.join(distDir, 'orphan.test.js');
+      fs.writeFileSync(compiledFile, '');
+
+      assert.throws(
+        () => {
+          checkCompiledTests(
+            [compiledFile],
+            {
+              distDir,
+              sourceDir,
+              projectDir,
+              prune: true
+            }
+          );
+        },
+        /--prune requires distDir to be a dedicated directory inside projectDir/
+      );
+
+      assert.strictEqual(fs.existsSync(compiledFile), true);
+    });
+
+    test('does not prune compiled tests from the project root', (t) => {
+      const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+      const sourceDir = path.join(projectDir, 'src');
+
+      t.after(() => {
+        fs.rmSync(projectDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      const compiledFile = path.join(projectDir, 'orphan.test.js');
+      fs.writeFileSync(compiledFile, '');
+
+      assert.throws(
+        () => {
+          checkCompiledTests(
+            [compiledFile],
+            {
+              distDir: projectDir,
+              sourceDir,
+              projectDir,
+              prune: true
+            }
+          );
+        },
+        /--prune requires distDir to be a dedicated directory inside projectDir/
+      );
+
+      assert.strictEqual(fs.existsSync(compiledFile), true);
+    });
+
+    test('does not prune files when another compiled test is outdated', (t) => {
+      const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+      const distDir = path.join(projectDir, 'dist');
+      const sourceDir = path.join(projectDir, 'src');
+
+      t.after(() => {
+        fs.rmSync(projectDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(distDir, { recursive: true });
+      fs.mkdirSync(sourceDir, { recursive: true });
+
+      const orphanFile = path.join(distDir, 'orphan.test.js');
+      const outdatedFile = path.join(distDir, 'outdated.test.js');
+      const sourceFile = path.join(sourceDir, 'outdated.test.ts');
+
+      fs.writeFileSync(orphanFile, '');
+      fs.writeFileSync(outdatedFile, '');
+      fs.writeFileSync(sourceFile, '');
+
+      fs.utimesSync(
+        outdatedFile,
+        new Date('2000-01-01T00:00:00.000Z'),
+        new Date('2000-01-01T00:00:00.000Z')
+      );
+      fs.utimesSync(
+        sourceFile,
+        new Date('2000-01-02T00:00:00.000Z'),
+        new Date('2000-01-02T00:00:00.000Z')
+      );
+
+      assert.throws(
+        () => {
+          checkCompiledTests(
+            [
+              orphanFile,
+              outdatedFile
+            ],
+            {
+              distDir,
+              sourceDir,
+              projectDir,
+              prune: true
+            }
+          );
+        },
+        /Compiled tests are older than source tests/
+      );
+
+      assert.strictEqual(fs.existsSync(orphanFile), true);
     });
 
     test('throws when source test is newer than compiled test', (t) => {

@@ -2,20 +2,21 @@
 
 > Type: Policy. This document defines the non-functional properties of the project that a working change must not violate.
 
-Changes must not break:
+Changes must not unintentionally break:
 
 - build reproducibility
 - determinism
 - portability
 - CI
-- runtime behavior
-- file structure
+- runtime behavior outside the requested scenario
+- compatibility-sensitive file structure
 - startup order
-- architecture
-- dependencies
+- documented architectural boundaries
+- dependency contracts
 
-Even if the code works,
-a change is forbidden if it violates these properties.
+An explicit task may require changing one of these properties. In that case, the
+change must be limited to the required scope and its compatibility impact must
+be documented and validated.
 
 ## Risk Examples
 

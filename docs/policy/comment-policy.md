@@ -18,8 +18,10 @@ Not:
 
 ## Basic Rules
 
-1. In each production module that participates in runtime, defines a layer contract, or contains non-trivial responsibility, one top architectural block is allowed.
-2. The top architectural block must describe the file role, allowed responsibility, module boundaries, and foreign responsibility that must not be moved into this file.
+1. A top architectural block is optional and is justified only when the module
+   role or boundary is not already clear from names, types, and structure.
+2. When present, the top block must describe the file role, important
+   boundaries, and the reason those boundaries matter.
 3. Local comments are allowed only where the reason for a decision, invariant, or constraint would be lost without them.
 4. Obvious code actions do not need comments.
 5. JSDoc for public contracts must be short and specific.
@@ -36,14 +38,9 @@ Template:
 
 ```ts
 /**
- * Module <role of the file in the system>.
+ * <Role of the module and the responsibility it owns>.
  *
- * Allowed here:
- * - <responsibility 1>;
- * - <responsibility 2>;
- * - <responsibility 3>;
- *
- * This file must not contain <foreign responsibility>.
+ * <Non-obvious boundary and why it must remain here>.
  */
 ```
 
@@ -51,15 +48,9 @@ Good example:
 
 ```ts
 /**
- * The runtime config resolver module transforms external input
- * into normalized launch settings.
+ * Resolves TypeScript project config into source and output directories.
  *
- * Allowed here:
- * - reading supported config sources;
- * - validating required fields;
- * - forming diagnostics for invalid config;
- *
- * This file must not contain CLI rendering or network calls.
+ * Compiler API parsing belongs here; CLI option selection remains in bootstrap.
  */
 ```
 
@@ -71,7 +62,7 @@ Bad example:
  */
 ```
 
-This comment does not explain the module role, boundaries, or allowed responsibility.
+This comment does not explain the module role, owned responsibility, or boundary.
 
 ## Exceptions
 
@@ -212,9 +203,9 @@ A workaround must explain the external constraint, not just describe the workaro
 Good:
 
 ```ts
-// External API returns an empty string instead of a missing value:
-// normalize it here so the domain layer works only with undefined.
-const value = rawValue === '' ? undefined : rawValue;
+// TypeScript leaves rootDir undefined when it is omitted. Use the config
+// directory because the runner needs a deterministic source-to-output mapping.
+const sourceDir = parsedConfig.options.rootDir ?? configDir;
 ```
 
 Bad:
@@ -232,9 +223,9 @@ Good:
 
 ```ts
 /**
- * CLI entrypoint only transforms argv into command input.
+ * Adapts the Node.js process environment to the CLI bootstrap.
  *
- * This file must not contain domain behavior, persistence, or network orchestration.
+ * Option parsing, test discovery, and suite execution remain in other modules.
  */
 ```
 

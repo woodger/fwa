@@ -25,17 +25,14 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
 }
 
 /**
- * Resolves the config path using the same file-or-directory shape as `tsc --project`.
+ * Uses the project-root config by default and the same file-or-directory shape
+ * as `tsc --project` for an explicit path.
  */
 function resolveTsConfigFile(projectDir: string, projectPath: string | undefined): string {
   if (projectPath === undefined) {
-    const configFile = ts.findConfigFile(
-      projectDir,
-      (file) => ts.sys.fileExists(file),
-      defaultRunnerConfig.tsConfigFileName
-    );
+    const configFile = path.join(projectDir, defaultRunnerConfig.tsConfigFileName);
 
-    if (configFile === undefined) {
+    if (!ts.sys.fileExists(configFile)) {
       throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
     }
 

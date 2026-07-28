@@ -90,12 +90,14 @@ Rules:
 - `--project` accepts a config file or a directory containing `tsconfig.json`;
 - `--project <path>` is resolved relative to the selected project root;
 - `--prune` prunes stale compiled tests whose source files no longer exist;
+- `--prune` requires `outDir` to be a dedicated directory inside the selected project root;
 - `--isolation` can be `process` or `none`;
 - `--isolation` requires Node.js `>=22.8.0`;
 - `--node-args` consumes all remaining arguments;
 - `--node-args` must be the last `fwa` option;
 - `--node-args` requires Node.js `>=22.10.0`;
 - `--node-args` cannot be used with `--isolation none`;
+- `--help`, `-h`, `--version`, and `-v` must be used as standalone arguments;
 - `--source-dir` and `--dist-dir` are not supported.
 
 ## Exit Code Behavior

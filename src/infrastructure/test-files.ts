@@ -26,6 +26,20 @@ type OutdatedCompiledTest = {
   source: string;
 };
 
+function compareDeterministically(left: string, right: string): number {
+  // Relational comparison has a fixed code-unit order, while localeCompare
+  // can produce different test order on machines with different locales.
+  if (left < right) {
+    return -1;
+  }
+
+  if (left > right) {
+    return 1;
+  }
+
+  return 0;
+}
+
 /**
  * Recursively collects test files with the specified extension or extensions.
  *
@@ -58,7 +72,7 @@ function collectTestFilesByExtension(
 
   const entries = fs
     .readdirSync(dir, { withFileTypes: true })
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .sort((left, right) => compareDeterministically(left.name, right.name));
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
@@ -136,6 +150,28 @@ function isFileNotFoundError(error: unknown): boolean {
   );
 }
 
+function assertPruneDirectoryInsideProject(
+  distDir: string,
+  projectDir: string
+): void {
+  const realDistDir = fs.realpathSync(distDir);
+  const realProjectDir = fs.realpathSync(projectDir);
+  const relativeDistDir = path.relative(realProjectDir, realDistDir);
+  const isInsideProject = (
+    relativeDistDir !== ''
+    && relativeDistDir !== '..'
+    && !relativeDistDir.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relativeDistDir)
+  );
+
+  if (!isInsideProject) {
+    throw new Error(
+      '--prune requires distDir to be a dedicated directory inside projectDir: '
+      + `${toProjectPath(distDir, projectDir) || '.'}`
+    );
+  }
+}
+
 /**
  * Verifies a resolved project directory before the runner starts filesystem work.
  *
@@ -169,6 +205,8 @@ export function assertDirectory(dir: string, name: string, projectDir: string): 
  *
  * Compiled tests without source are pruned only when prune is enabled.
  * Otherwise the run fails before stale JavaScript can be executed.
+ * Pruning is limited to a dedicated output directory inside the project and
+ * starts only after every remaining compiled test passes validation.
  *
  * Additionally checks that an existing compiled test is not older than its source test.
  * This protects against a false-positive run of old compiled JS tests after
@@ -178,8 +216,12 @@ export function checkCompiledTests(
   testFiles: string[],
   options: CompiledTestCheckOptions
 ): string[] {
+  if (options.prune) {
+    assertPruneDirectoryInsideProject(options.distDir, options.projectDir);
+  }
+
   const runnableFiles: string[] = [];
-  const prunedFiles: string[] = [];
+  const filesToPrune: { file: string; projectPath: string }[] = [];
   const orphanFiles: string[] = [];
   const outdatedFiles: OutdatedCompiledTest[] = [];
   const log = options.log ?? ((message: string) => console.warn(message));
@@ -198,8 +240,10 @@ export function checkCompiledTests(
       const projectPath = toProjectPath(file, options.projectDir);
 
       if (options.prune) {
-        fs.unlinkSync(file);
-        prunedFiles.push(projectPath);
+        filesToPrune.push({
+          file,
+          projectPath
+        });
         continue;
       }
 
@@ -217,17 +261,6 @@ export function checkCompiledTests(
     }
   }
 
-  if (prunedFiles.length) {
-    log(
-      [
-        'Pruned stale compiled tests without source:',
-        ...prunedFiles
-          .sort((left, right) => left.localeCompare(right))
-          .map((file) => `- ${file}`)
-      ].join('\n')
-    );
-  }
-
   if (orphanFiles.length) {
     throw new Error(
       [
@@ -235,7 +268,7 @@ export function checkCompiledTests(
         '',
         'Run with --prune to remove them:',
         ...orphanFiles
-          .sort((left, right) => left.localeCompare(right))
+          .sort(compareDeterministically)
           .map((file) => `- ${file}`)
       ].join('\n')
     );
@@ -248,8 +281,24 @@ export function checkCompiledTests(
         '',
         'Rebuild before npm test:',
         ...outdatedFiles
-          .sort((left, right) => left.compiled.localeCompare(right.compiled))
+          .sort((left, right) => compareDeterministically(left.compiled, right.compiled))
           .map(({ compiled, source }) => `- ${compiled} (source: ${source})`)
+      ].join('\n')
+    );
+  }
+
+  if (filesToPrune.length) {
+    for (const { file } of filesToPrune) {
+      fs.unlinkSync(file);
+    }
+
+    log(
+      [
+        'Pruned stale compiled tests without source:',
+        ...filesToPrune
+          .map(({ projectPath }) => projectPath)
+          .sort(compareDeterministically)
+          .map((file) => `- ${file}`)
       ].join('\n')
     );
   }

@@ -36,7 +36,9 @@ Example of an incorrect change:
 
 If stale artifacts remain in build output after files are moved, they must be removed narrowly and explicitly as part of that specific operation, not by changing the project's permanent build/test pipeline.
 
-File deletion is allowed only when the task explicitly requests it.
+File deletion is allowed when the task explicitly requests it or when it is a
+narrow, necessary part of an in-scope move, rename, prune, or migration. Resolve
+the exact targets first and avoid adding permanent cleanup to the build pipeline.
 
 ## Additional Examples
 

@@ -116,7 +116,8 @@ describe('runSuiteUseCase', () => {
       distDir: '/project/dist',
       sourceDir: '/project/src',
       projectDir: '/project',
-      prune: true
+      prune: true,
+      log: dependencies.warn
     });
   });
 

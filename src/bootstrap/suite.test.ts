@@ -2,9 +2,10 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import { describe, test } from 'node:test';
 
-import { resolveSuiteOptions } from './suite';
+import { resolveSuiteOptions, runSuite } from './suite';
 
 describe('resolveSuiteOptions', () => {
   test('resolves sourceDir and distDir from tsconfig', (t) => {
@@ -235,5 +236,46 @@ describe('resolveSuiteOptions', () => {
     assert.strictEqual(options.sourceDir, path.join(projectDir, 'test-source'));
     assert.strictEqual(options.distDir, path.join(projectDir, 'test-build'));
     assert.strictEqual(options.runnerFile, 'runner.js');
+  });
+});
+
+describe('runSuite', () => {
+  test('warns and sets failure exit code when no compiled tests are found', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const previousExitCode = process.exitCode;
+    const warnings: string[] = [];
+
+    t.after(() => {
+      process.exitCode = previousExitCode;
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.mkdirSync(path.join(projectDir, 'build'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'source',
+          outDir: 'build'
+        },
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    t.mock.method(console, 'warn', (message: unknown) => {
+      warnings.push(String(message));
+    });
+    process.exitCode = undefined;
+
+    runSuite({
+      projectDir
+    });
+
+    assert.deepStrictEqual(warnings, ['No test files found in build']);
+    assert.strictEqual(process.exitCode, 1);
   });
 });

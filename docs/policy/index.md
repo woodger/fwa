@@ -2,7 +2,7 @@
 
 > Type: Navigation. This document provides navigation for the policy section and defines the general purpose of the project change constraints.
 
-This section contains project rules for changing Node.js/TypeScript codebases.
+This section contains the rules for changing this Node.js/TypeScript project.
 
 The policy set is intended to preserve:
 

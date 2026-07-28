@@ -75,7 +75,20 @@ export function runSuite(options: SuiteRunnerOptions): void {
       assertDirectory,
       collectTestFiles,
       checkCompiledTests,
-      runTestFiles: runNodeTestFiles,
+      runTestFiles: (testFiles, isolation, nodeArgs) => {
+        runNodeTestFiles(
+          testFiles,
+          isolation,
+          nodeArgs,
+          {
+            output: process.stdout,
+            reportError: (error) => console.error(error),
+            setExitCode: (code) => {
+              process.exitCode = code;
+            }
+          }
+        );
+      },
       resolvePath: (file) => path.resolve(file),
       setExitCode: (code) => {
         process.exitCode = code;

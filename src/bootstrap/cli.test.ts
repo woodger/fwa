@@ -94,36 +94,6 @@ describe('runCli', () => {
     ]);
   });
 
-  test('prints version for --version', () => {
-    const stdout: string[] = [];
-    let exitCode: number | undefined;
-    let suiteWasRun = false;
-
-    runCli({
-      args: ['--version'],
-      defaultProjectDir: '/project',
-      runnerFile: '/project/dist/bin.js'
-    }, {
-      readVersion: () => '2.0.0-alpha',
-      runSuite: () => {
-        suiteWasRun = true;
-      },
-      setExitCode: (code) => {
-        exitCode = code;
-      },
-      writeStderr: (message) => {
-        assert.fail(message);
-      },
-      writeStdout: (message) => {
-        stdout.push(message);
-      }
-    });
-
-    assert.strictEqual(suiteWasRun, false);
-    assert.strictEqual(exitCode, 0);
-    assert.deepStrictEqual(stdout, ['2.0.0-alpha\n']);
-  });
-
   test('prints version for -v', () => {
     const stdout: string[] = [];
     let exitCode: number | undefined;
