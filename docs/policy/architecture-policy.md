@@ -57,17 +57,13 @@ Contains pure domain logic.
 
 Allowed here:
 
-- domain models;
-- trading and market concepts;
-- feature calculations;
-- target calculations;
-- mathematical and statistical functions when they are part of the domain model;
-- ML profiles as domain descriptions of feature and target sets;
-- domain-specific policies and rules.
+- pure test-runner rules and policies;
+- models describing source and compiled tests;
+- deterministic test selection and validation rules that do not perform IO.
 
 Must not contain:
 
-- HTTP, CLI, Hono, TypeORM, Tinkoff Invest, Apache Arrow, filesystem, subprocess;
+- CLI, `node:test`, TypeScript compiler API, filesystem, or process access;
 - env/config reads;
 - user output formatting;
 - use-case orchestration;
@@ -90,9 +86,9 @@ Allowed here:
 
 Must not contain:
 
-- direct work with HTTP, CLI, TypeORM, Python subprocess, filesystem, or external APIs;
+- direct work with CLI, `node:test`, TypeScript compiler API, filesystem, or process state;
 - transport-specific mapping;
-- provider-specific rules;
+- Node.js-version-specific runtime checks;
 - CLI output formatting;
 - stdout/file sinks for reports;
 - pure domain mathematics if it can live in `domain`.
@@ -104,23 +100,18 @@ Contains implementation of the outside world.
 Allowed here:
 
 - adapters;
-- persistence;
-- transport;
-- HTTP server;
-- middleware;
-- controllers;
 - filesystem IO;
-- subprocess integration;
-- worker runtime;
-- external provider integration;
-- provider-specific validators;
-- serialization/deserialization of external formats.
+- TypeScript config parsing;
+- Node.js runtime capability checks;
+- native `node:test` integration;
+- technical path normalization.
 
 Must not contain:
 
 - business rules;
 - scenario decisions of use cases;
-- pure domain logic.
+- pure domain logic;
+- CLI parsing or user-facing output decisions.
 
 ### `bootstrap`
 
