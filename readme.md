@@ -21,6 +21,8 @@ execution to the native Node.js test runner.
 npm install --save-dev fwa
 ```
 
+This version requires TypeScript `>=7.0.2 <7.1.0`.
+
 ## Quick Start
 
 Recommended script:

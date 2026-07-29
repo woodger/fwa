@@ -1,9 +1,20 @@
+import fs from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
-import * as ts from 'typescript';
+import {
+  API,
+  DiagnosticCategory,
+  type Diagnostic
+} from 'typescript/unstable/sync';
 
 import { defaultRunnerConfig } from '../config';
 import { toProjectPath } from './project-path';
+
+/**
+ * Resolves TypeScript project config into source and output directories.
+ *
+ * TypeScript 7.0 exposes config parsing through a version-bounded unstable API.
+ * Its native process lifecycle remains local to this infrastructure boundary.
+ */
 
 /**
  * Source and output directories resolved from TypeScript config.
@@ -14,14 +25,80 @@ export type TsConfigDirectories = {
 };
 
 /**
- * Formats TypeScript config diagnostics for deterministic CLI errors.
+ * Returns whether a path exists with the expected filesystem shape.
  */
-function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
-  return ts.formatDiagnostics(diagnostics, {
-    getCanonicalFileName: (file) => file,
-    getCurrentDirectory: () => process.cwd(),
-    getNewLine: () => '\n'
-  });
+function isFile(file: string): boolean {
+  try {
+    return fs.statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function isDirectory(directory: string): boolean {
+  try {
+    return fs.statSync(directory).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Formats TypeScript 7 config diagnostics for deterministic CLI errors.
+ */
+function formatDiagnosticCategory(category: DiagnosticCategory): string {
+  switch (category) {
+    case DiagnosticCategory.Warning:
+      return 'warning';
+    case DiagnosticCategory.Error:
+      return 'error';
+    case DiagnosticCategory.Suggestion:
+      return 'suggestion';
+    case DiagnosticCategory.Message:
+      return 'message';
+    default:
+      return 'error';
+  }
+}
+
+function formatDiagnosticMessage(diagnostic: Diagnostic): string {
+  const nestedMessages = diagnostic.messageChain?.map(formatDiagnosticMessage) ?? [];
+
+  return [diagnostic.text, ...nestedMessages].join('\n');
+}
+
+function formatDiagnosticLocation(diagnostic: Diagnostic): string {
+  if (diagnostic.fileName === undefined || diagnostic.pos < 0) {
+    return '';
+  }
+
+  try {
+    const text = fs.readFileSync(diagnostic.fileName, 'utf8');
+    const beforeDiagnostic = text.slice(0, diagnostic.pos);
+    const line = beforeDiagnostic.split('\n').length;
+    const lastNewLine = beforeDiagnostic.lastIndexOf('\n');
+    const character = diagnostic.pos - lastNewLine;
+
+    return `${diagnostic.fileName}(${line},${character}): `;
+  } catch {
+    return `${diagnostic.fileName}: `;
+  }
+}
+
+function formatDiagnostic(diagnostic: Diagnostic): string {
+  const formatted = [
+    `${formatDiagnosticLocation(diagnostic)}${formatDiagnosticCategory(diagnostic.category)} TS${diagnostic.code}: ${formatDiagnosticMessage(diagnostic)}`
+  ];
+
+  for (const relatedDiagnostic of diagnostic.relatedInformation ?? []) {
+    formatted.push(formatDiagnostic(relatedDiagnostic));
+  }
+
+  return formatted.join('\n');
+}
+
+function formatTsDiagnostics(diagnostics: readonly Diagnostic[]): string {
+  return diagnostics.map(formatDiagnostic).join('\n');
 }
 
 /**
@@ -32,7 +109,7 @@ function resolveTsConfigFile(projectDir: string, projectPath: string | undefined
   if (projectPath === undefined) {
     const configFile = path.join(projectDir, defaultRunnerConfig.tsConfigFileName);
 
-    if (!ts.sys.fileExists(configFile)) {
+    if (!isFile(configFile)) {
       throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
     }
 
@@ -41,11 +118,28 @@ function resolveTsConfigFile(projectDir: string, projectPath: string | undefined
 
   const resolvedProjectPath = path.resolve(projectDir, projectPath);
 
-  if (ts.sys.directoryExists(resolvedProjectPath)) {
+  if (isDirectory(resolvedProjectPath)) {
     return path.join(resolvedProjectPath, defaultRunnerConfig.tsConfigFileName);
   }
 
   return resolvedProjectPath;
+}
+
+function readPathOption(
+  options: Readonly<Record<string, unknown>>,
+  optionName: 'rootDir' | 'outDir'
+): string | undefined {
+  const value = options[optionName];
+
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new Error(`compilerOptions.${optionName} must resolve to a string`);
+  }
+
+  return value;
 }
 
 /**
@@ -60,36 +154,40 @@ export function readTsConfigDirectories(
   projectPath?: string
 ): TsConfigDirectories {
   const configFile = resolveTsConfigFile(projectDir, projectPath);
-  const configResult = ts.readConfigFile(
-    configFile,
-    (file) => ts.sys.readFile(file)
-  );
-
-  if (configResult.error !== undefined) {
-    throw new Error(formatTsDiagnostics([configResult.error]));
-  }
-
   const configDir = path.dirname(configFile);
-  const parsedConfig = ts.parseJsonConfigFileContent(
-    configResult.config,
-    ts.sys,
-    configDir,
-    {},
-    configFile
-  );
+  const api = new API({ cwd: projectDir });
 
-  if (parsedConfig.errors.length) {
-    throw new Error(formatTsDiagnostics(parsedConfig.errors));
+  try {
+    const parsedConfig = api.parseConfigFile(configFile);
+    const snapshot = api.updateSnapshot({
+      openProjects: [configFile]
+    });
+    const project = snapshot.getProject(configFile);
+
+    if (project === undefined) {
+      throw new Error(`Cannot load ${toProjectPath(configFile, projectDir)}`);
+    }
+
+    const diagnostics = project.program.getConfigFileParsingDiagnostics();
+
+    if (diagnostics.length > 0) {
+      throw new Error(formatTsDiagnostics(diagnostics));
+    }
+
+    const sourceDir = readPathOption(parsedConfig.options, 'rootDir') ?? configDir;
+    const distDir = readPathOption(parsedConfig.options, 'outDir');
+
+    if (distDir === undefined) {
+      throw new Error(
+        `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
+      );
+    }
+
+    return {
+      sourceDir,
+      distDir
+    };
+  } finally {
+    api.close();
   }
-
-  if (parsedConfig.options.outDir === undefined) {
-    throw new Error(
-      `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
-    );
-  }
-
-  return {
-    sourceDir: parsedConfig.options.rootDir ?? configDir,
-    distDir: parsedConfig.options.outDir
-  };
 }

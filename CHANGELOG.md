@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Migrated project compilation and TypeScript config parsing to TypeScript
+  7.0.2.
+- Preserved `extends`, path normalization, and config diagnostics through a
+  version-bounded TypeScript 7 transitional API adapter.
+
 ## 2.0.7
 
 - Restricted `--prune` to dedicated output directories inside the selected

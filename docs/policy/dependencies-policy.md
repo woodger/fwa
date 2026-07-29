@@ -23,6 +23,21 @@ Undesirable dependencies:
 A focused package is not automatically worse than a broad one. Choose the
 smallest maintained dependency that reduces current risk and complexity.
 
+## Transitional APIs
+
+An explicitly version-bounded transitional API may be used when a stable
+surface does not yet cover an existing production responsibility. Such use
+must:
+
+- stay inside one infrastructure boundary;
+- depend on the smallest required surface;
+- preserve observable behavior with focused tests;
+- document the supported dependency range and the condition for reassessment.
+
+The TypeScript 7.0 config adapter is the current application of this rule. Its
+supported range stops before TypeScript 7.1 and must be reassessed when the
+stable TypeScript 7 API becomes available.
+
 ## Selection Examples
 
 Allowed:

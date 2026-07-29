@@ -35,6 +35,41 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(projectDir, 'build'));
   });
 
+  test('reads inherited rootDir and outDir relative to the extended config', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'config'), { recursive: true });
+    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'config', 'tsconfig.base.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: '../source',
+          outDir: '../build'
+        }
+      })
+    );
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        extends: './config/tsconfig.base.json',
+        include: [
+          'source/**/*.ts'
+        ]
+      })
+    );
+
+    const directories = readTsConfigDirectories(projectDir);
+
+    assert.strictEqual(directories.sourceDir, path.join(projectDir, 'source'));
+    assert.strictEqual(directories.distDir, path.join(projectDir, 'build'));
+  });
+
   test('uses tsconfig directory as source root when rootDir is not configured', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
@@ -117,6 +152,37 @@ describe('readTsConfigDirectories', () => {
 
     assert.strictEqual(directories.sourceDir, path.join(packageDir, 'src'));
     assert.strictEqual(directories.distDir, path.join(packageDir, 'dist'));
+  });
+
+  test('throws for an invalid compiler option value', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'src', 'sample.ts'), '');
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          target: 'invalid',
+          rootDir: 'src',
+          outDir: 'dist'
+        },
+        include: [
+          'src/**/*.ts'
+        ]
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /error TS6046: Argument for '--target' option/
+    );
   });
 
   test('does not use a parent TypeScript config by default', (t) => {
