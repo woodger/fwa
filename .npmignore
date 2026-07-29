@@ -1,8 +1,7 @@
-node_modules/
-yarn.lock
-eslint.config.mjs
 docs/
 src/
+yarn.lock
 tsconfig.json
+eslint.config.mjs
 **/*.map
 **/*.test.*
