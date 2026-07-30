@@ -21,6 +21,9 @@ execution to the native Node.js test runner.
 npm install --save-dev fwa
 ```
 
+`fwa` does not impose a TypeScript version on the project and does not load the
+consumer's `typescript` package.
+
 ## Quick Start
 
 Recommended script:

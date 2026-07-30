@@ -1,9 +1,16 @@
+import fs from 'node:fs';
 import path from 'node:path';
-import process from 'node:process';
-import * as ts from 'typescript';
 
 import { defaultRunnerConfig } from '../config';
 import { toProjectPath } from './project-path';
+import { parseRunnerTsConfig } from './tsconfig-parser';
+
+/**
+ * Resolves TypeScript project config into source and output directories.
+ *
+ * The dedicated config parser keeps the consumer's TypeScript package and
+ * compiler version outside the runner dependency graph.
+ */
 
 /**
  * Source and output directories resolved from TypeScript config.
@@ -14,14 +21,22 @@ export type TsConfigDirectories = {
 };
 
 /**
- * Formats TypeScript config diagnostics for deterministic CLI errors.
+ * Returns whether a path exists with the expected filesystem shape.
  */
-function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
-  return ts.formatDiagnostics(diagnostics, {
-    getCanonicalFileName: (file) => file,
-    getCurrentDirectory: () => process.cwd(),
-    getNewLine: () => '\n'
-  });
+function isFile(file: string): boolean {
+  try {
+    return fs.statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function isDirectory(directory: string): boolean {
+  try {
+    return fs.statSync(directory).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -29,67 +44,48 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
  * as `tsc --project` for an explicit path.
  */
 function resolveTsConfigFile(projectDir: string, projectPath: string | undefined): string {
-  if (projectPath === undefined) {
-    const configFile = path.join(projectDir, defaultRunnerConfig.tsConfigFileName);
+  const configFile = projectPath === undefined
+    ? path.join(projectDir, defaultRunnerConfig.tsConfigFileName)
+    : path.resolve(projectDir, projectPath);
+  const resolvedConfigFile = isDirectory(configFile)
+    ? path.join(configFile, defaultRunnerConfig.tsConfigFileName)
+    : configFile;
 
-    if (!ts.sys.fileExists(configFile)) {
-      throw new Error(`Cannot find ${defaultRunnerConfig.tsConfigFileName} from ${projectDir}`);
-    }
-
-    return configFile;
+  if (!isFile(resolvedConfigFile)) {
+    throw new Error(
+      `Cannot find ${toProjectPath(resolvedConfigFile, projectDir)} from ${projectDir}`
+    );
   }
 
-  const resolvedProjectPath = path.resolve(projectDir, projectPath);
-
-  if (ts.sys.directoryExists(resolvedProjectPath)) {
-    return path.join(resolvedProjectPath, defaultRunnerConfig.tsConfigFileName);
-  }
-
-  return resolvedProjectPath;
+  return resolvedConfigFile;
 }
 
 /**
- * Reads source and output directories through the TypeScript config parser.
+ * Reads source and output directories through a dedicated config parser.
  *
- * Using the compiler API keeps `rootDir`, `outDir`, `extends`, and path
- * normalization behavior aligned with TypeScript instead of duplicating
- * tsconfig rules manually.
+ * Only path resolution belongs to the runner. The consumer's build remains
+ * responsible for validating all other compiler options and source files.
  */
 export function readTsConfigDirectories(
   projectDir: string,
   projectPath?: string
 ): TsConfigDirectories {
   const configFile = resolveTsConfigFile(projectDir, projectPath);
-  const configResult = ts.readConfigFile(
-    configFile,
-    (file) => ts.sys.readFile(file)
-  );
-
-  if (configResult.error !== undefined) {
-    throw new Error(formatTsDiagnostics([configResult.error]));
-  }
-
   const configDir = path.dirname(configFile);
-  const parsedConfig = ts.parseJsonConfigFileContent(
-    configResult.config,
-    ts.sys,
-    configDir,
-    {},
-    configFile
-  );
+  const parsedConfig = parseRunnerTsConfig(configFile, projectDir);
+  const sourceDir = parsedConfig.compilerOptions?.rootDir;
+  const distDir = parsedConfig.compilerOptions?.outDir;
 
-  if (parsedConfig.errors.length) {
-    throw new Error(formatTsDiagnostics(parsedConfig.errors));
-  }
-
-  if (parsedConfig.options.outDir === undefined) {
+  if (distDir === undefined) {
     throw new Error(
       `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
     );
   }
 
   return {
-    sourceDir: parsedConfig.options.rootDir ?? configDir,
-    distDir: parsedConfig.options.outDir
+    sourceDir: sourceDir === undefined
+      ? configDir
+      : path.resolve(configDir, sourceDir),
+    distDir: path.resolve(configDir, distDir)
   };
 }

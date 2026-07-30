@@ -41,10 +41,10 @@ function compareDeterministically(left: string, right: string): number {
 }
 
 /**
- * Recursively collects test files with the specified extension or extensions.
+ * Collects test files with the specified extension or extensions.
  *
- * Traversal order is stabilized by sorting so test execution does not depend
- * on the order in which the filesystem returns directory contents.
+ * Directories are traversed depth-first in deterministic name order so test
+ * execution does not depend on filesystem enumeration order.
  */
 export function collectTestFiles(
   dir: string,
@@ -53,32 +53,65 @@ export function collectTestFiles(
   const acceptedExtensions: readonly TestExtension[] = Array.isArray(extensions)
     ? extensions
     : [extensions];
+  const files: string[] = [];
 
-  return collectTestFilesByExtension(dir, acceptedExtensions);
+  collectTestFilesByExtension(dir, acceptedExtensions, files);
+
+  return files;
 }
 
 /**
- * Internal recursive collector.
+ * Parent frames retain the next sorted entry so iterative traversal preserves
+ * depth-first order when files and directories are interleaved.
  *
- * The public wrapper normalizes one extension into an array once, so recursive
- * calls can reuse the same immutable list instead of repeating that branching
- * for every visited directory.
+ * A caller-owned accumulator also avoids per-directory result arrays and the
+ * argument limit imposed by spreading a large child result into its parent.
  */
 function collectTestFilesByExtension(
   dir: string,
-  extensions: readonly TestExtension[]
-): string[] {
-  const files: string[] = [];
+  extensions: readonly TestExtension[],
+  files: string[]
+): void {
+  const directoryStack: Array<{
+    directory: string;
+    entries: fs.Dirent[];
+    nextEntryIndex: number;
+  }> = [
+    {
+      directory: dir,
+      entries: fs
+        .readdirSync(dir, { withFileTypes: true })
+        .sort((left, right) => compareDeterministically(left.name, right.name)),
+      nextEntryIndex: 0
+    }
+  ];
 
-  const entries = fs
-    .readdirSync(dir, { withFileTypes: true })
-    .sort((left, right) => compareDeterministically(left.name, right.name));
+  while (directoryStack.length > 0) {
+    const currentDirectory = directoryStack[directoryStack.length - 1];
 
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
+    if (currentDirectory === undefined) {
+      break;
+    }
+
+    const entry = currentDirectory.entries[currentDirectory.nextEntryIndex];
+
+    if (entry === undefined) {
+      directoryStack.pop();
+      continue;
+    }
+
+    currentDirectory.nextEntryIndex += 1;
+
+    const fullPath = path.join(currentDirectory.directory, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...collectTestFilesByExtension(fullPath, extensions));
+      directoryStack.push({
+        directory: fullPath,
+        entries: fs
+          .readdirSync(fullPath, { withFileTypes: true })
+          .sort((left, right) => compareDeterministically(left.name, right.name)),
+        nextEntryIndex: 0
+      });
       continue;
     }
 
@@ -89,8 +122,6 @@ function collectTestFilesByExtension(
       files.push(fullPath);
     }
   }
-
-  return files;
 }
 
 /**

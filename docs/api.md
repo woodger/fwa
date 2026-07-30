@@ -1,6 +1,6 @@
 # Public API
 
-The documented programmatic API is the package root import:
+The programmatic API is available from the package root:
 
 ```ts
 import { runSuite } from 'fwa';
@@ -12,11 +12,91 @@ runSuite({
 
 `runSuite` performs configuration and compiled-test validation synchronously,
 starts the native test stream, and returns `void` after the stream is wired. It
-does not return a `Promise` and cannot be awaited for suite completion.
+does not return a `Promise` and cannot be awaited for suite completion. This is
+the compatibility API used by the CLI.
 
-Only `runSuite` and the exported TypeScript types from the package root should
-be treated as public API. Internal files under `dist` are implementation
-details.
+For orchestration code, use the two-phase API:
+
+```ts
+import {
+  prepareSuite,
+  runPreparedSuite
+} from 'fwa';
+
+const plan = prepareSuite({
+  projectDir: process.cwd(),
+  prune: true
+});
+
+const result = await runPreparedSuite(plan, {
+  onEvent: (event) => {
+    if (event.type === 'summary') {
+      console.info(event.data);
+    }
+  }
+});
+
+if (result.status === 'failed') {
+  // Decide how this suite affects the orchestration run.
+}
+```
+
+`prepareSuite` resolves the TypeScript project, discovers compiled tests, and
+checks stale output without starting tests or changing `process.exitCode`. It
+returns a `SuitePlan` containing the resolved directories and test-file list.
+Preparation options cover project resolution, pruning, runner exclusion, and
+diagnostic logging. Execution options such as `isolation` and `nodeArgs` belong
+to `runPreparedSuite`; they are intentionally not accepted by `prepareSuite` or
+stored in the plan.
+
+`runPreparedSuite` executes that snapshot. An empty plan returns
+`{ status: 'empty', exitCode: 1 }` and does not start Node's test runner.
+
+For the common one-call case, use `runSuiteAsync`:
+
+```ts
+import { runSuiteAsync } from 'fwa';
+
+const result = await runSuiteAsync({
+  projectDir: process.cwd(),
+  output: process.stdout
+});
+```
+
+`runSuiteAsync` is equivalent to preparation followed by execution and returns
+a `Promise<SuiteRunResult>`. Configuration and preparation errors reject the
+promise. Test failures resolve with `status: 'failed'`; runner, reporter, and
+output-stream errors reject it. The result includes `testFiles`, test counts,
+the execution duration, and an `exitCode` value for orchestration decisions.
+
+The asynchronous API is library-oriented: it does not write reporter output
+unless `output` is supplied and never mutates `process.exitCode`. A supplied
+output stream remains owned by the caller: `fwa` waits for its reporter writes
+to complete but does not end the stream.
+
+Cancel an in-progress run with an `AbortSignal`:
+
+```ts
+const controller = new AbortController();
+
+const resultPromise = runSuiteAsync({
+  projectDir: process.cwd(),
+  signal: controller.signal
+});
+
+controller.abort();
+
+const result = await resultPromise;
+```
+
+Cancellation is represented as a completed unsuccessful run: the promise
+resolves with `status: 'failed'`, `exitCode: 1`, and cancelled-test counts. It
+does not reject solely because the signal was aborted. Native runner or stream
+errors still reject the promise.
+
+The four functions shown above and the exported TypeScript types from the
+package root are the public API. Internal files under `dist` are
+implementation details.
 
 ## TypeScript Project Config
 
@@ -34,6 +114,9 @@ runSuite({
 
 The option follows the same file-or-directory shape as `tsc --project`.
 Relative paths are resolved from `projectDir`.
+
+Config parsing is internal to `fwa`. Calling `runSuite` does not load or
+constrain the consuming project's `typescript` package.
 
 ## Pruning
 
@@ -58,7 +141,7 @@ run then reports an empty suite through `log` and sets `process.exitCode = 1`.
 
 ## Diagnostic Output
 
-Use `log` to receive runner diagnostics without replacing `console.warn`:
+Use `log` to receive preparation diagnostics without replacing `console.warn`:
 
 ```ts
 import { runSuite } from 'fwa';
@@ -72,8 +155,19 @@ runSuite({
 ```
 
 The callback receives successful prune diagnostics and the empty-suite message.
-Configuration errors and stale or outdated compiled-test errors are thrown
-instead. Native test reporter output is still written to the process streams.
+Errors that prevent resolving the selected TypeScript config, its `extends`
+chain, or its `rootDir` and `outDir` paths are thrown, as are stale or outdated
+compiled-test errors. Other TypeScript compiler diagnostics remain the
+responsibility of the consumer's build. In the asynchronous API, use `log` for
+preparation diagnostics and `output` or `onEvent` for execution output.
+
+`onEvent` receives normalized `pass`, `fail`, `summary`, `stdout`, and `stderr`
+events. The `data` field preserves the corresponding native `node:test` event
+payload. With process isolation, Node.js versions that provide native summary
+events can emit a per-file summary followed by a cumulative summary. On
+supported runtimes without native summary events, `fwa` emits one compatible
+cumulative summary when execution ends and measures the elapsed duration
+itself. An exception thrown by `onEvent` rejects the suite promise.
 
 ## Runner File Exclusion
 
@@ -86,6 +180,17 @@ prefer an absolute path; relative values follow the process working directory
 during exclusion.
 
 ## Node.js Test Runner Options
+
+`runSuite` uses the Node.js executable of the current process. It does not
+accept an external Node.js executable or manage another runtime.
+
+With `isolation: 'process'`, native test child processes use the current
+runtime. With `isolation: 'none'`, tests run in the current process. `nodeArgs`
+changes only the flags passed to isolated child processes.
+
+A `runSuite` call confirms behavior only on that runtime. Compatibility with
+other Node.js versions must be verified separately by the consuming project's
+CI matrix.
 
 Disable process isolation:
 
@@ -119,18 +224,27 @@ It cannot be used with `isolation: 'none'`.
 
 ## Errors And Exit Code
 
-The programmatic API throws synchronous configuration and validation errors to
-the caller.
+The compatibility `runSuite` API throws synchronous configuration and
+validation errors to the caller.
 
-During suite execution, `fwa` does not call `process.exit()` directly. On test
-failure, or when no runnable tests are found, it sets:
+During compatibility suite execution, `fwa` does not call `process.exit()` directly.
+On test failure, or when no runnable tests are found, it sets:
 
 ```ts
 process.exitCode = 1;
 ```
 
 Test failures are reported after `runSuite` returns because native test
-execution is stream-based.
+execution is stream-based. The asynchronous orchestration API leaves exit-code
+policy to the caller and reports the same outcome through `SuiteRunResult`.
+
+## Current Working Directory
+
+`projectDir` controls config resolution and compiled-test discovery. The native
+Node test runner is still started in the caller's current process context; the
+API does not temporarily call `process.chdir` or provide per-suite environment
+mutation. Orchestrators that require a separate working directory or
+environment should launch an isolated worker process around `fwa`.
 
 ## Source Of Truth
 

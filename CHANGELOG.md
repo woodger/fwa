@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.1.0
+
+- Added `prepareSuite`, `runPreparedSuite`, and `runSuiteAsync` for
+  programmatic orchestration with plans, execution events, structured results,
+  `AbortSignal` cancellation, and no runner-owned `process.exitCode` changes.
+- Kept asynchronous reporter output caller-owned and waited for pending writes
+  and output errors before settling a suite result.
+- Migrated project compilation to TypeScript 7.0.2 and linting from ESLint to
+  Biome 2.5.6.
+- Removed the TypeScript peer dependency so `fwa` no longer constrains or loads
+  the consumer's compiler package.
+- Moved `rootDir`, `outDir`, and `extends` resolution to a dedicated lightweight
+  config parser without a compiler runtime dependency, native child process, or
+  full project snapshot.
+- Left validation of unrelated compiler options and source files to the
+  consumer's build.
+- Rejected config errors that prevent resolving `extends`, `rootDir`, or
+  `outDir` instead of silently continuing with fallback paths.
+- Kept package-root imports lightweight by deferring suite infrastructure and
+  config parser initialization until an API operation is invoked.
+- Reworked test discovery as iterative depth-first traversal with a shared
+  accumulator while preserving deterministic execution order.
+- Clarified that tests run on the current Node.js runtime and compatibility
+  with other runtime versions remains the consuming project's CI responsibility.
+
 ## 2.0.7
 
 - Restricted `--prune` to dedicated output directories inside the selected

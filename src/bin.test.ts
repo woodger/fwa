@@ -30,12 +30,13 @@ describe('fwa CLI entrypoint', () => {
     assert.strictEqual(result.stderr, '');
   });
 
-  test('runs a passing compiled test project in a child process', (t) => {
+  test('runs a passing project without loading consumer TypeScript', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fwa-bin-'));
     const sourceDir = path.join(projectDir, 'src');
     const distDir = path.join(projectDir, 'dist');
     const sourceFile = path.join(sourceDir, 'fixture.test.ts');
     const compiledFile = path.join(distDir, 'fixture.test.js');
+    const resolutionGuard = path.join(projectDir, 'reject-consumer-typescript.cjs');
 
     t.after(() => {
       fs.rmSync(projectDir, { recursive: true, force: true });
@@ -73,6 +74,22 @@ describe('fwa CLI entrypoint', () => {
         ''
       ].join('\n')
     );
+    fs.writeFileSync(
+      resolutionGuard,
+      [
+        "const Module = require('node:module');",
+        'const loadModule = Module._load;',
+        '',
+        'Module._load = function guardedLoad(request, parent, isMain) {',
+        "  if (request === 'typescript' || request.startsWith('typescript/')) {",
+        "    throw new Error('fwa loaded consumer TypeScript');",
+        '  }',
+        '',
+        '  return loadModule.call(this, request, parent, isMain);',
+        '};',
+        ''
+      ].join('\n')
+    );
     fs.utimesSync(
       sourceFile,
       new Date('2020-01-01T00:00:00.000Z'),
@@ -85,8 +102,12 @@ describe('fwa CLI entrypoint', () => {
     );
 
     const childEnvironment = { ...process.env };
+    const existingNodeOptions = childEnvironment['NODE_OPTIONS'];
 
     delete childEnvironment['NODE_TEST_CONTEXT'];
+    childEnvironment['NODE_OPTIONS'] = existingNodeOptions === undefined
+      ? `--require=${resolutionGuard}`
+      : `${existingNodeOptions} --require=${resolutionGuard}`;
 
     const result = spawnSync(
       process.execPath,

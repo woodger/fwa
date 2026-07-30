@@ -23,6 +23,32 @@ Undesirable dependencies:
 A focused package is not automatically worse than a broad one. Choose the
 smallest maintained dependency that reduces current risk and complexity.
 
+## Consumer Toolchain Isolation
+
+Development tools used to build or lint `fwa` must not become requirements for
+consuming projects.
+
+A runtime integration with a compiler or toolchain must:
+
+- stay inside one infrastructure boundary;
+- use a private dependency owned by `fwa`;
+- avoid loading or constraining the consumer's tool package;
+- depend on the smallest surface required by runner behavior;
+- preserve observable behavior with focused tests.
+
+The TypeScript config parser is the current application of this rule. It reads
+only the path options required by the runner. TypeScript 7 and Biome remain
+development tools for this repository and do not define consumer requirements.
+
+## Lockfile
+
+`yarn.lock` is committed to source control so local development and CI resolve
+the same dependency tree. Dependency changes must update `package.json` and the
+lockfile together, and validation should use `yarn install --frozen-lockfile`.
+
+The lockfile remains excluded from the npm package because consumers resolve
+dependencies from their own top-level project.
+
 ## Selection Examples
 
 Allowed:

@@ -8,6 +8,25 @@ target project's TypeScript config, finds compiled JavaScript test files, checks
 that they still match source TypeScript tests, and then passes the final file
 list to the native Node.js test runner.
 
+The runner does not impose a TypeScript version on the project or load the
+consumer's `typescript` package.
+
+## Node.js Runtime
+
+`fwa` runs compiled tests with the same Node.js executable that launched the
+CLI. It does not select, download, or manage a different Node.js runtime.
+
+With the default `process` isolation, the native test runner starts child
+processes with the current runtime. With `none` isolation, tests run in the
+current process. `--node-args` passes flags to isolated test processes; it does
+not select another executable.
+
+`fwa` itself requires Node.js `>=20.19.0`. A successful `fwa` run therefore
+confirms behavior only on the current runtime. Projects that support other
+Node.js versions, including older versions outside the `fwa` engine range, must
+verify them separately in the consuming project's CI compatibility or smoke
+jobs.
+
 ## Recommended Script
 
 ```json

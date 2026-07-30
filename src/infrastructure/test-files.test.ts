@@ -33,6 +33,30 @@ describe('test-files', () => {
       ]);
     });
 
+    test('preserves sorted depth-first order across files and directories', (t) => {
+      const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+      t.after(() => {
+        fs.rmSync(rootDir, { recursive: true, force: true });
+      });
+
+      fs.mkdirSync(path.join(rootDir, 'a-directory'));
+      fs.mkdirSync(path.join(rootDir, 'c-directory'));
+
+      fs.writeFileSync(path.join(rootDir, 'a-directory', 'nested.test.js'), '');
+      fs.writeFileSync(path.join(rootDir, 'b.test.js'), '');
+      fs.writeFileSync(path.join(rootDir, 'c-directory', 'nested.test.js'), '');
+
+      const files = collectTestFiles(rootDir, '.test.js')
+        .map((file) => path.relative(rootDir, file).split(path.sep).join('/'));
+
+      assert.deepStrictEqual(files, [
+        'a-directory/nested.test.js',
+        'b.test.js',
+        'c-directory/nested.test.js'
+      ]);
+    });
+
     test('collects all requested extensions', (t) => {
       const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
