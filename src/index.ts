@@ -1,13 +1,49 @@
 import { createRequire } from 'node:module';
 
-import type { SuiteRunnerOptions } from './application/run-suite';
+import type {
+  AsyncSuiteRunnerOptions,
+  SuiteExecutionOptions,
+  SuitePlan,
+  SuiteRunResult,
+  SuiteRunnerOptions
+} from './application/run-suite';
 
-export type { SuiteRunnerOptions };
+export type {
+  AsyncSuiteRunnerOptions,
+  SuiteEvent,
+  SuiteEventType,
+  SuiteExecutionOptions,
+  SuitePlan,
+  SuiteRunResult,
+  SuiteRunnerOptions,
+  SuiteTestCounts
+} from './application/run-suite';
 
 const loadModule = createRequire(__filename);
 
-export function runSuite(options: SuiteRunnerOptions): void {
-  const suiteModule = loadModule('./bootstrap/suite') as typeof import('./bootstrap/suite');
+type SuiteModule = typeof import('./bootstrap/suite');
 
-  suiteModule.runSuite(options);
+function loadSuiteModule(): SuiteModule {
+  return loadModule('./bootstrap/suite') as SuiteModule;
+}
+
+export function runSuite(options: SuiteRunnerOptions): void {
+  loadSuiteModule().runSuite(options);
+}
+
+export function prepareSuite(options: SuiteRunnerOptions): SuitePlan {
+  return loadSuiteModule().prepareSuite(options);
+}
+
+export function runPreparedSuite(
+  plan: SuitePlan,
+  options?: SuiteExecutionOptions
+): Promise<SuiteRunResult> {
+  return loadSuiteModule().runPreparedSuite(plan, options);
+}
+
+export function runSuiteAsync(
+  options: AsyncSuiteRunnerOptions
+): Promise<SuiteRunResult> {
+  return loadSuiteModule().runSuiteAsync(options);
 }

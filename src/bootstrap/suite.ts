@@ -3,11 +3,19 @@ import process from 'node:process';
 
 import { defaultRunnerConfig } from '../config';
 import {
+  prepareSuiteUseCase,
   runSuiteUseCase,
+  type AsyncSuiteRunnerOptions,
   type ResolvedSuiteRunnerOptions,
+  type SuiteExecutionOptions,
+  type SuitePlan,
+  type SuiteRunResult,
   type SuiteRunnerOptions
 } from '../application/run-suite';
-import { runNodeTestFiles } from '../infrastructure/node-test';
+import {
+  runNodeTestFiles,
+  runNodeTestFilesAsync
+} from '../infrastructure/node-test';
 import {
   assertDirectory,
   checkCompiledTests,
@@ -57,6 +65,120 @@ export function resolveSuiteOptions(
   }
 
   return resolvedOptions;
+}
+
+function prepareSuiteWithResolvedOptions(
+  options: ResolvedSuiteRunnerOptions
+): SuitePlan {
+  return prepareSuiteUseCase(
+    options,
+    {
+      assertDirectory,
+      collectTestFiles,
+      checkCompiledTests,
+      resolvePath: (file) => path.resolve(file),
+      toProjectPath,
+      // Library calls are quiet by default. A caller-provided `log` has
+      // already been retained in the resolved options.
+      warn: () => undefined
+    }
+  );
+}
+
+/**
+ * Resolves and validates a suite without starting native test execution.
+ *
+ * This is the first phase of the programmatic orchestration API and has no
+ * process exit-code or reporter-output side effects.
+ */
+export function prepareSuite(options: SuiteRunnerOptions): SuitePlan {
+  return prepareSuiteWithResolvedOptions(resolveSuiteOptions(options));
+}
+
+function createEmptySuiteResult(testFiles: readonly string[]): SuiteRunResult {
+  return {
+    status: 'empty',
+    exitCode: 1,
+    testFiles,
+    counts: {
+      cancelled: 0,
+      failed: 0,
+      passed: 0,
+      skipped: 0,
+      suites: 0,
+      tests: 0,
+      todo: 0
+    },
+    durationMs: 0
+  };
+}
+
+function resolveExecutionOptions(
+  options: SuiteExecutionOptions
+): Required<Pick<SuiteExecutionOptions, 'isolation' | 'nodeArgs'>>
+  & Omit<SuiteExecutionOptions, 'isolation' | 'nodeArgs'> {
+  const isolation = options.isolation ?? defaultRunnerConfig.nodeTest.defaultIsolation;
+  const nodeArgs = options.nodeArgs ?? defaultRunnerConfig.nodeTest.defaultNodeArgs;
+
+  if (isolation === 'none' && nodeArgs.length > 0) {
+    throw new Error('Node args cannot be used with isolation "none".');
+  }
+
+  return {
+    ...options,
+    isolation,
+    nodeArgs
+  };
+}
+
+/**
+ * Executes a previously prepared plan and returns structured test results.
+ *
+ * The library does not write output or mutate `process.exitCode`; callers can
+ * opt into native reporter output with `output` or consume normalized events.
+ */
+export async function runPreparedSuite(
+  plan: SuitePlan,
+  options: SuiteExecutionOptions = {}
+): Promise<SuiteRunResult> {
+  assertExplicitNodeTestOptionsSupported(options);
+
+  const executionOptions = resolveExecutionOptions(options);
+
+  if (plan.testFiles.length === 0) {
+    return createEmptySuiteResult(plan.testFiles);
+  }
+
+  const executionResult = await runNodeTestFilesAsync(
+    [...plan.testFiles],
+    executionOptions.isolation,
+    executionOptions.nodeArgs,
+    executionOptions
+  );
+
+  return {
+    status: executionResult.success ? 'passed' : 'failed',
+    exitCode: executionResult.success ? 0 : 1,
+    testFiles: plan.testFiles,
+    counts: executionResult.counts,
+    durationMs: executionResult.durationMs
+  };
+}
+
+/**
+ * Prepares and executes a suite for library consumers.
+ *
+ * Configuration and preparation failures reject the promise. Test failures
+ * resolve to a result with `status: 'failed'`.
+ */
+export async function runSuiteAsync(
+  options: AsyncSuiteRunnerOptions
+): Promise<SuiteRunResult> {
+  assertExplicitNodeTestOptionsSupported(options);
+
+  const plan = prepareSuite(options);
+
+  return runPreparedSuite(plan, options);
 }
 
 /**

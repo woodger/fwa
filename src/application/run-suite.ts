@@ -12,6 +12,24 @@ export type { TestExtension, TestIsolation } from '../config.types';
 export type Log = (message: string) => void;
 
 /**
+ * Stable event categories exposed by the programmatic test execution API.
+ */
+export type SuiteEventType =
+  | 'pass'
+  | 'fail'
+  | 'summary'
+  | 'stdout'
+  | 'stderr';
+
+/**
+ * A native test-runner event normalized for library consumers.
+ */
+export type SuiteEvent = {
+  type: SuiteEventType;
+  data: Readonly<Record<string, unknown>>;
+};
+
+/**
  * Options for checking compiled tests before running the test runner.
  *
  * The check links compiled JS tests to the corresponding source TS tests
@@ -77,6 +95,57 @@ export type SuiteRunnerOptions = {
 };
 
 /**
+ * Options that affect native test execution but not suite preparation.
+ */
+export type SuiteExecutionOptions = {
+  isolation?: TestIsolation;
+  nodeArgs?: readonly string[];
+  output?: NodeJS.WritableStream;
+  onEvent?: (event: SuiteEvent) => void;
+  signal?: AbortSignal;
+};
+
+/**
+ * Options for the asynchronous programmatic suite API.
+ */
+export type AsyncSuiteRunnerOptions = SuiteRunnerOptions & SuiteExecutionOptions;
+
+/**
+ * Resolved test files and project paths ready for native test execution.
+ */
+export type SuitePlan = {
+  projectDir: string;
+  sourceDir: string;
+  distDir: string;
+  runnerFile: string;
+  testFiles: readonly string[];
+};
+
+/**
+ * Counts reported by the native Node.js test runner.
+ */
+export type SuiteTestCounts = {
+  cancelled: number;
+  failed: number;
+  passed: number;
+  skipped: number;
+  suites: number;
+  tests: number;
+  todo: number;
+};
+
+/**
+ * Structured result returned after asynchronous suite execution.
+ */
+export type SuiteRunResult = {
+  status: 'passed' | 'failed' | 'empty';
+  exitCode: 0 | 1;
+  testFiles: readonly string[];
+  counts: SuiteTestCounts;
+  durationMs: number;
+};
+
+/**
  * Fully resolved suite options used by the application use case.
  */
 export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
@@ -84,6 +153,20 @@ export type ResolvedSuiteRunnerOptions = CompiledTestCheckOptions & {
   isolation: TestIsolation;
   nodeArgs: readonly string[];
 };
+
+/**
+ * Dependencies required to prepare a suite without executing tests or changing
+ * process state.
+ */
+export type PrepareSuiteUseCaseDependencies = Pick<
+  RunSuiteUseCaseDependencies,
+  | 'assertDirectory'
+  | 'collectTestFiles'
+  | 'checkCompiledTests'
+  | 'resolvePath'
+  | 'toProjectPath'
+  | 'warn'
+>;
 
 /**
  * Runtime side effects required by the suite use case.
@@ -107,15 +190,14 @@ export type RunSuiteUseCaseDependencies = {
 };
 
 /**
- * Runs the compiled test suite through injected runtime dependencies.
+ * Resolves directories, discovers compiled tests, and validates stale output.
  *
- * The use case owns execution order and fallback decisions, while filesystem
- * access and process-level side effects stay outside application code.
+ * The preparation step deliberately does not run tests or set an exit code.
  */
-export function runSuiteUseCase(
+export function prepareSuiteUseCase(
   options: ResolvedSuiteRunnerOptions,
-  dependencies: RunSuiteUseCaseDependencies
-): void {
+  dependencies: PrepareSuiteUseCaseDependencies
+): SuitePlan {
   const log = options.log ?? dependencies.warn;
   const checkOptions: CompiledTestCheckOptions = {
     distDir: options.distDir,
@@ -144,9 +226,37 @@ export function runSuiteUseCase(
     log(
       `No test files found in ${dependencies.toProjectPath(options.distDir, options.projectDir) || '.'}`
     );
+  }
+
+  return {
+    projectDir: options.projectDir,
+    sourceDir: options.sourceDir,
+    distDir: options.distDir,
+    runnerFile: options.runnerFile,
+    testFiles
+  };
+}
+
+/**
+ * Runs the compiled test suite through injected runtime dependencies.
+ *
+ * The use case owns execution order and fallback decisions, while filesystem
+ * access and process-level side effects stay outside application code.
+ */
+export function runSuiteUseCase(
+  options: ResolvedSuiteRunnerOptions,
+  dependencies: RunSuiteUseCaseDependencies
+): void {
+  const preparedSuite = prepareSuiteUseCase(options, dependencies);
+
+  if (!preparedSuite.testFiles.length) {
     dependencies.setExitCode(1);
     return;
   }
 
-  dependencies.runTestFiles(testFiles, options.isolation, options.nodeArgs);
+  dependencies.runTestFiles(
+    [...preparedSuite.testFiles],
+    options.isolation,
+    options.nodeArgs
+  );
 }
