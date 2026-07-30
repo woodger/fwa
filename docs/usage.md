@@ -8,6 +8,9 @@ target project's TypeScript config, finds compiled JavaScript test files, checks
 that they still match source TypeScript tests, and then passes the final file
 list to the native Node.js test runner.
 
+The runner does not impose a TypeScript version on the project or load the
+consumer's `typescript` package.
+
 ## Node.js Runtime
 
 `fwa` runs compiled tests with the same Node.js executable that launched the

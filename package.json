@@ -13,10 +13,7 @@
     "stale-tests",
     "cli"
   ],
-  "author": {
-    "name": "Stanislav Potemkin",
-    "email": "woodger@ya.ru"
-  },
+  "author": "Stanislav Potemkin <woodger@ya.ru>",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,12 +33,20 @@
     "test": "node dist/bin.js",
     "lint": "biome lint src"
   },
-  "peerDependencies": {
-    "typescript": ">=7.0.2 <7.1.0"
+  "dependencies": {
+    "@typescript/typescript6": "6.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",
     "@types/node": "^22.10.0",
     "typescript": "7.0.2"
-  }
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/woodger/fwa/issues"
+  },
+  "homepage": "https://github.com/woodger/fwa#readme"
 }

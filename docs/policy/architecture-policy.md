@@ -85,7 +85,7 @@ Responsibilities:
 
 - filesystem discovery and validation;
 - source-to-output path mapping;
-- TypeScript config parsing and native API client lifecycle;
+- private TypeScript config parsing;
 - Node.js capability checks;
 - native `node:test` integration;
 - deterministic technical diagnostics associated with those operations.

@@ -154,7 +154,7 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(packageDir, 'dist'));
   });
 
-  test('throws for an invalid compiler option value', (t) => {
+  test('reads directories without validating unrelated compiler options', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
@@ -177,11 +177,44 @@ describe('readTsConfigDirectories', () => {
       })
     );
 
+    const directories = readTsConfigDirectories(projectDir);
+
+    assert.strictEqual(directories.sourceDir, path.join(projectDir, 'src'));
+    assert.strictEqual(directories.distDir, path.join(projectDir, 'dist'));
+  });
+
+  test('throws when an explicit TypeScript config cannot be read', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir, 'missing.json');
+      },
+      /error TS5083: Cannot read file/
+    );
+  });
+
+  test('throws when the selected TypeScript config is malformed', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      '{"compilerOptions":'
+    );
+
     assert.throws(
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS6046: Argument for '--target' option/
+      /error TS\d+:/
     );
   });
 

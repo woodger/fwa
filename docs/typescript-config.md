@@ -12,9 +12,13 @@ By default, it reads:
 The default lookup does not search parent directories. Use `--project`
 explicitly when the config lives elsewhere.
 
-`fwa` currently supports TypeScript `>=7.0.2 <7.1.0`. TypeScript 7.0 exposes
-programmatic config parsing through a transitional API, so the supported range
-is bounded until the stable TypeScript 7.1 API is available and verified.
+`fwa` does not declare a TypeScript peer dependency and does not load the
+consumer's `typescript` package. The compiler version used by the consuming
+project remains under that project's control.
+
+Config paths are resolved through a private compatibility parser used only by
+`fwa`. This keeps runner behavior independent from TypeScript API changes in the
+consumer's dependency graph.
 
 Use `--project` to select a different config file or a directory containing
 `tsconfig.json`:
@@ -38,8 +42,12 @@ For stable source-to-output mapping, set `compilerOptions.rootDir` explicitly.
 In most projects this is usually `"src"` or `"."`.
 
 `fwa` uses the TypeScript config parser, so `extends`, relative compiler
-options, and config diagnostics follow TypeScript behavior. The native config
-API process is closed before compiled tests are started.
+options, and path normalization follow TypeScript config behavior.
+
+The runner does not validate unrelated compiler options, enumerate source
+files, or type-check the project. The consumer's build owns those checks before
+`fwa` starts. The selected config must still be readable and syntactically
+valid, and `compilerOptions.outDir` must resolve to a string.
 
 ## Expected Layout
 

@@ -2,10 +2,14 @@
 
 ## Unreleased
 
-- Migrated project compilation and TypeScript config parsing to TypeScript
-  7.0.2.
-- Preserved `extends`, path normalization, and config diagnostics through a
-  version-bounded TypeScript 7 transitional API adapter.
+- Migrated project compilation to TypeScript 7.0.2 and linting from ESLint to
+  Biome 2.5.6.
+- Removed the TypeScript peer dependency so `fwa` no longer constrains or loads
+  the consumer's compiler package.
+- Moved `rootDir`, `outDir`, and `extends` resolution to a private compatibility
+  parser without a native child process or a full project snapshot.
+- Left validation of unrelated compiler options and source files to the
+  consumer's build.
 
 ## 2.0.7
 

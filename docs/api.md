@@ -35,6 +35,9 @@ runSuite({
 The option follows the same file-or-directory shape as `tsc --project`.
 Relative paths are resolved from `projectDir`.
 
+Config parsing is internal to `fwa`. Calling `runSuite` does not load or
+constrain the consuming project's `typescript` package.
+
 ## Pruning
 
 Use `prune` to remove compiled tests whose source files no longer exist:

@@ -1,10 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  API,
-  DiagnosticCategory,
-  type Diagnostic
-} from 'typescript/unstable/sync';
+import process from 'node:process';
+import * as ts from '@typescript/typescript6';
 
 import { defaultRunnerConfig } from '../config';
 import { toProjectPath } from './project-path';
@@ -12,8 +9,8 @@ import { toProjectPath } from './project-path';
 /**
  * Resolves TypeScript project config into source and output directories.
  *
- * TypeScript 7.0 exposes config parsing through a version-bounded unstable API.
- * Its native process lifecycle remains local to this infrastructure boundary.
+ * The private compatibility parser keeps the consumer's TypeScript package and
+ * compiler version outside the runner dependency graph.
  */
 
 /**
@@ -43,62 +40,12 @@ function isDirectory(directory: string): boolean {
   }
 }
 
-/**
- * Formats TypeScript 7 config diagnostics for deterministic CLI errors.
- */
-function formatDiagnosticCategory(category: DiagnosticCategory): string {
-  switch (category) {
-    case DiagnosticCategory.Warning:
-      return 'warning';
-    case DiagnosticCategory.Error:
-      return 'error';
-    case DiagnosticCategory.Suggestion:
-      return 'suggestion';
-    case DiagnosticCategory.Message:
-      return 'message';
-    default:
-      return 'error';
-  }
-}
-
-function formatDiagnosticMessage(diagnostic: Diagnostic): string {
-  const nestedMessages = diagnostic.messageChain?.map(formatDiagnosticMessage) ?? [];
-
-  return [diagnostic.text, ...nestedMessages].join('\n');
-}
-
-function formatDiagnosticLocation(diagnostic: Diagnostic): string {
-  if (diagnostic.fileName === undefined || diagnostic.pos < 0) {
-    return '';
-  }
-
-  try {
-    const text = fs.readFileSync(diagnostic.fileName, 'utf8');
-    const beforeDiagnostic = text.slice(0, diagnostic.pos);
-    const line = beforeDiagnostic.split('\n').length;
-    const lastNewLine = beforeDiagnostic.lastIndexOf('\n');
-    const character = diagnostic.pos - lastNewLine;
-
-    return `${diagnostic.fileName}(${line},${character}): `;
-  } catch {
-    return `${diagnostic.fileName}: `;
-  }
-}
-
-function formatDiagnostic(diagnostic: Diagnostic): string {
-  const formatted = [
-    `${formatDiagnosticLocation(diagnostic)}${formatDiagnosticCategory(diagnostic.category)} TS${diagnostic.code}: ${formatDiagnosticMessage(diagnostic)}`
-  ];
-
-  for (const relatedDiagnostic of diagnostic.relatedInformation ?? []) {
-    formatted.push(formatDiagnostic(relatedDiagnostic));
-  }
-
-  return formatted.join('\n');
-}
-
-function formatTsDiagnostics(diagnostics: readonly Diagnostic[]): string {
-  return diagnostics.map(formatDiagnostic).join('\n');
+function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
+  return ts.formatDiagnostics(diagnostics, {
+    getCanonicalFileName: (file) => file,
+    getCurrentDirectory: () => process.cwd(),
+    getNewLine: () => '\n'
+  });
 }
 
 /**
@@ -125,29 +72,11 @@ function resolveTsConfigFile(projectDir: string, projectPath: string | undefined
   return resolvedProjectPath;
 }
 
-function readPathOption(
-  options: Readonly<Record<string, unknown>>,
-  optionName: 'rootDir' | 'outDir'
-): string | undefined {
-  const value = options[optionName];
-
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (typeof value !== 'string') {
-    throw new Error(`compilerOptions.${optionName} must resolve to a string`);
-  }
-
-  return value;
-}
-
 /**
  * Reads source and output directories through the TypeScript config parser.
  *
- * Using the compiler API keeps `rootDir`, `outDir`, `extends`, and path
- * normalization behavior aligned with TypeScript instead of duplicating
- * tsconfig rules manually.
+ * Only path resolution belongs to the runner. The consumer's build remains
+ * responsible for validating all other compiler options and source files.
  */
 export function readTsConfigDirectories(
   projectDir: string,
@@ -155,39 +84,35 @@ export function readTsConfigDirectories(
 ): TsConfigDirectories {
   const configFile = resolveTsConfigFile(projectDir, projectPath);
   const configDir = path.dirname(configFile);
-  const api = new API({ cwd: projectDir });
+  const configResult = ts.readConfigFile(configFile, ts.sys.readFile);
 
-  try {
-    const parsedConfig = api.parseConfigFile(configFile);
-    const snapshot = api.updateSnapshot({
-      openProjects: [configFile]
-    });
-    const project = snapshot.getProject(configFile);
-
-    if (project === undefined) {
-      throw new Error(`Cannot load ${toProjectPath(configFile, projectDir)}`);
-    }
-
-    const diagnostics = project.program.getConfigFileParsingDiagnostics();
-
-    if (diagnostics.length > 0) {
-      throw new Error(formatTsDiagnostics(diagnostics));
-    }
-
-    const sourceDir = readPathOption(parsedConfig.options, 'rootDir') ?? configDir;
-    const distDir = readPathOption(parsedConfig.options, 'outDir');
-
-    if (distDir === undefined) {
-      throw new Error(
-        `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
-      );
-    }
-
-    return {
-      sourceDir,
-      distDir
-    };
-  } finally {
-    api.close();
+  if (configResult.error !== undefined) {
+    throw new Error(formatTsDiagnostics([configResult.error]));
   }
+
+  const parsedConfig = ts.parseJsonConfigFileContent(
+    configResult.config,
+    {
+      ...ts.sys,
+      // File discovery belongs to the consumer build. Returning no files keeps
+      // runner startup independent from the size of the TypeScript project.
+      readDirectory: () => []
+    },
+    configDir,
+    {},
+    configFile
+  );
+  const sourceDir = parsedConfig.options.rootDir ?? configDir;
+  const distDir = parsedConfig.options.outDir;
+
+  if (distDir === undefined) {
+    throw new Error(
+      `compilerOptions.outDir is required in ${toProjectPath(configFile, projectDir)}`
+    );
+  }
+
+  return {
+    sourceDir,
+    distDir
+  };
 }
