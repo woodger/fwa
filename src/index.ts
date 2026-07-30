@@ -25,6 +25,12 @@ const loadModule = createRequire(__filename);
 
 type SuiteModule = typeof import('./bootstrap/suite');
 
+/**
+ * Keeps package import independent from suite infrastructure initialization.
+ *
+ * Config parsing and filesystem adapters are needed only when a consumer
+ * invokes an operation, while importing the API should remain lightweight.
+ */
 function loadSuiteModule(): SuiteModule {
   return loadModule('./bootstrap/suite') as SuiteModule;
 }

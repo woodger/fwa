@@ -43,8 +43,8 @@ function compareDeterministically(left: string, right: string): number {
 /**
  * Collects test files with the specified extension or extensions.
  *
- * Traversal order is stabilized by sorting so test execution does not depend
- * on the order in which the filesystem returns directory contents.
+ * Directories are traversed depth-first in deterministic name order so test
+ * execution does not depend on filesystem enumeration order.
  */
 export function collectTestFiles(
   dir: string,
@@ -61,11 +61,11 @@ export function collectTestFiles(
 }
 
 /**
- * Internal iterative depth-first collector.
+ * Parent frames retain the next sorted entry so iterative traversal preserves
+ * depth-first order when files and directories are interleaved.
  *
- * The public wrapper normalizes one extension into an array once, so traversal
- * can reuse the same immutable list. A caller-owned accumulator avoids
- * allocating and spreading an intermediate result for every directory.
+ * A caller-owned accumulator also avoids per-directory result arrays and the
+ * argument limit imposed by spreading a large child result into its parent.
  */
 function collectTestFilesByExtension(
   dir: string,
