@@ -1,3 +1,6 @@
+import { performance } from 'node:perf_hooks';
+import { Writable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { run, type RunOptions } from 'node:test';
 import { spec } from 'node:test/reporters';
 
@@ -34,6 +37,7 @@ export type NodeTestExecutionResult = {
 type NativeSummary = {
   counts: {
     cancelled: number;
+    failed?: number;
     passed: number;
     skipped: number;
     suites: number;
@@ -43,6 +47,24 @@ type NativeSummary = {
   duration_ms: number;
   success: boolean;
 };
+
+type NativeTestResultEvent = {
+  details?: {
+    error?: {
+      failureType?: string;
+    };
+    type?: string;
+  };
+  nesting?: number;
+  skip?: string | boolean;
+  todo?: string | boolean;
+};
+
+const cancelledFailureTypes = new Set([
+  'cancelledByParent',
+  'testAborted',
+  'testTimeoutFailure'
+]);
 
 function createRunOptions(
   testFiles: string[],
@@ -92,11 +114,10 @@ function eventData(data: object): Readonly<Record<string, unknown>> {
 }
 
 function normalizeSummaryCounts(
-  summary: NativeSummary,
-  fallbackCounts: SuiteTestCounts
+  summary: NativeSummary
 ): SuiteTestCounts {
-  const failed = Math.max(
-    fallbackCounts.failed,
+  const failed = summary.counts.failed ?? Math.max(
+    0,
     summary.counts.tests
       - summary.counts.passed
       - summary.counts.skipped
@@ -112,6 +133,81 @@ function normalizeSummaryCounts(
     suites: summary.counts.suites,
     tests: summary.counts.tests,
     todo: summary.counts.todo
+  };
+}
+
+function recordFallbackResult(
+  counts: SuiteTestCounts,
+  event: NativeTestResultEvent,
+  passed: boolean
+): boolean {
+  if (event.details?.type === 'suite') {
+    counts.suites += 1;
+
+    return !passed
+      && event.skip === undefined
+      && event.todo === undefined;
+  }
+
+  counts.tests += 1;
+
+  if (event.skip !== undefined) {
+    counts.skipped += 1;
+    return false;
+  }
+
+  if (event.todo !== undefined) {
+    counts.todo += 1;
+    return false;
+  }
+
+  if (
+    event.details?.error?.failureType !== undefined
+    && cancelledFailureTypes.has(event.details.error.failureType)
+  ) {
+    counts.cancelled += 1;
+    return true;
+  }
+
+  if (passed) {
+    counts.passed += 1;
+    return false;
+  }
+
+  counts.failed += 1;
+  return true;
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function createOutputForwarder(output: NodeJS.WritableStream): {
+  dispose(): void;
+  stream: Writable;
+} {
+  const stream = new Writable({
+    write(chunk, _encoding, callback) {
+      try {
+        output.write(chunk, (error?: Error | null) => {
+          callback(error ?? undefined);
+        });
+      } catch (error) {
+        callback(toError(error));
+      }
+    }
+  });
+  const handleOutputError = (error: unknown): void => {
+    stream.destroy(toError(error));
+  };
+
+  output.on('error', handleOutputError);
+
+  return {
+    dispose: () => {
+      output.removeListener('error', handleOutputError);
+    },
+    stream
   };
 }
 
@@ -150,10 +246,11 @@ export function runNodeTestFiles(
 /**
  * Executes compiled tests without owning process exit codes or output.
  *
- * The returned promise resolves with test results and rejects only for runner
- * or reporter failures. Test assertion failures are represented in the result.
+ * The returned promise resolves with test results and rejects for runner,
+ * reporter, output, or event-callback failures. Test assertion failures are
+ * represented in the result.
  */
-export function runNodeTestFilesAsync(
+export async function runNodeTestFilesAsync(
   testFiles: string[],
   isolation: TestIsolation,
   nodeArgs: readonly string[],
@@ -165,17 +262,12 @@ export function runNodeTestFilesAsync(
     nodeArgs,
     options.signal
   );
-
-  let testStream: ReturnType<typeof run>;
-
-  try {
-    testStream = run(runOptions);
-  } catch (error) {
-    return Promise.reject(error);
-  }
-
-  return new Promise<NodeTestExecutionResult>((resolve, reject) => {
+  const startedAt = performance.now();
+  const testStream = run(runOptions);
+  let rejectExecution: ((error: unknown) => void) | undefined;
+  const resultPromise = new Promise<NodeTestExecutionResult>((resolve, reject) => {
     const fallbackCounts = createEmptyCounts();
+    let fallbackTopLevel = 0;
     let summary: NativeSummary | undefined;
     let hasFailure = false;
     let settled = false;
@@ -189,11 +281,13 @@ export function runNodeTestFilesAsync(
       reject(error);
     };
 
+    rejectExecution = rejectOnce;
+
     const notify = (
       type: SuiteEvent['type'],
       data: object
     ): void => {
-      if (options.onEvent === undefined) {
+      if (settled || options.onEvent === undefined) {
         return;
       }
 
@@ -212,55 +306,58 @@ export function runNodeTestFilesAsync(
         return;
       }
 
+      const success = summary?.success ?? !hasFailure;
+      const counts = summary === undefined
+        ? { ...fallbackCounts }
+        : normalizeSummaryCounts(summary);
+      const durationMs = summary?.duration_ms
+        ?? performance.now() - startedAt;
+      const result = {
+        success,
+        counts,
+        durationMs
+      };
+
+      if (summary === undefined) {
+        notify('summary', {
+          success,
+          counts: {
+            ...counts,
+            topLevel: fallbackTopLevel
+          },
+          duration_ms: durationMs,
+          file: undefined
+        });
+
+        if (settled) {
+          return;
+        }
+      }
+
       settled = true;
-      resolve({
-        success: summary?.success ?? !hasFailure,
-        counts: summary === undefined
-          ? fallbackCounts
-          : normalizeSummaryCounts(summary, fallbackCounts),
-        durationMs: summary?.duration_ms ?? 0
-      });
+      resolve(result);
     };
 
     testStream.on('test:pass', (data) => {
-      const event = data as unknown as {
-        details?: { type?: string };
-        skip?: string | boolean;
-        todo?: string | boolean;
-      };
+      const event = data as unknown as NativeTestResultEvent;
 
-      if (event.details?.type === 'suite') {
-        fallbackCounts.suites += 1;
-      } else if (event.todo !== undefined) {
-        fallbackCounts.todo += 1;
-        fallbackCounts.tests += 1;
-      } else if (event.skip !== undefined) {
-        fallbackCounts.skipped += 1;
-        fallbackCounts.tests += 1;
-      } else {
-        fallbackCounts.passed += 1;
-        fallbackCounts.tests += 1;
+      if (event.nesting === 0) {
+        fallbackTopLevel += 1;
       }
 
+      recordFallbackResult(fallbackCounts, event, true);
       notify('pass', data);
     });
 
     testStream.on('test:fail', (data) => {
-      const event = data as unknown as {
-        details?: { type?: string };
-        skip?: string | boolean;
-      };
+      const event = data as unknown as NativeTestResultEvent;
 
-      hasFailure = true;
+      if (event.nesting === 0) {
+        fallbackTopLevel += 1;
+      }
 
-      if (event.details?.type === 'suite') {
-        fallbackCounts.suites += 1;
-      } else if (event.skip !== undefined) {
-        fallbackCounts.skipped += 1;
-        fallbackCounts.tests += 1;
-      } else {
-        fallbackCounts.failed += 1;
-        fallbackCounts.tests += 1;
+      if (recordFallbackResult(fallbackCounts, event, false)) {
+        hasFailure = true;
       }
 
       notify('fail', data);
@@ -281,19 +378,48 @@ export function runNodeTestFilesAsync(
 
     testStream.on('error', rejectOnce);
     testStream.once('end', resolveResult);
+  });
+
+  if (options.output === undefined) {
+    testStream.resume();
 
     try {
-      if (options.output === undefined) {
-        testStream.resume();
-      } else {
-        const reporter = testStream.compose(spec);
-
-        reporter.on('error', rejectOnce);
-        options.output.on('error', rejectOnce);
-        reporter.pipe(options.output);
-      }
+      return await resultPromise;
     } catch (error) {
-      rejectOnce(error);
+      testStream.destroy(toError(error));
+      throw error;
     }
-  });
+  }
+
+  let reporter: ReturnType<typeof testStream.compose>;
+
+  try {
+    reporter = testStream.compose(spec);
+  } catch (error) {
+    const executionError = toError(error);
+
+    rejectExecution?.(executionError);
+    testStream.destroy(executionError);
+    throw error;
+  }
+
+  const outputForwarder = createOutputForwarder(options.output);
+
+  try {
+    const [result] = await Promise.all([
+      resultPromise,
+      pipeline(reporter, outputForwarder.stream)
+    ]);
+
+    return result;
+  } catch (error) {
+    const executionError = toError(error);
+
+    rejectExecution?.(executionError);
+    testStream.destroy(executionError);
+    outputForwarder.stream.destroy(executionError);
+    throw error;
+  } finally {
+    outputForwarder.dispose();
+  }
 }

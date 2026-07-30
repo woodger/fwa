@@ -9,6 +9,7 @@ import {
   type ResolvedSuiteRunnerOptions,
   type SuiteExecutionOptions,
   type SuitePlan,
+  type SuitePreparationOptions,
   type SuiteRunResult,
   type SuiteRunnerOptions
 } from '../application/run-suite';
@@ -91,7 +92,7 @@ function prepareSuiteWithResolvedOptions(
  * This is the first phase of the programmatic orchestration API and has no
  * process exit-code or reporter-output side effects.
  */
-export function prepareSuite(options: SuiteRunnerOptions): SuitePlan {
+export function prepareSuite(options: SuitePreparationOptions): SuitePlan {
   return prepareSuiteWithResolvedOptions(resolveSuiteOptions(options));
 }
 

@@ -22,7 +22,7 @@ export type SuiteEventType =
   | 'stderr';
 
 /**
- * A native test-runner event normalized for library consumers.
+ * A test-execution event normalized for library consumers.
  */
 export type SuiteEvent = {
   type: SuiteEventType;
@@ -93,6 +93,14 @@ export type SuiteRunnerOptions = {
 
   log?: Log;
 };
+
+/**
+ * Options used to prepare a suite without selecting how it will be executed.
+ */
+export type SuitePreparationOptions = Omit<
+  SuiteRunnerOptions,
+  'isolation' | 'nodeArgs'
+>;
 
 /**
  * Options that affect native test execution but not suite preparation.

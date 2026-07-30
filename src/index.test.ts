@@ -72,6 +72,7 @@ describe('package orchestration API', () => {
       [
         "const { test } = require('node:test');",
         "test('example', () => {});",
+        "test('expected failure', { todo: true }, () => { throw new Error('expected'); });",
         ''
       ].join('\n')
     );
@@ -121,6 +122,7 @@ describe('package orchestration API', () => {
         counts?: {
           failed?: number;
           passed?: number;
+          todo?: number;
         };
       };
       events?: string[];
@@ -133,8 +135,88 @@ describe('package orchestration API', () => {
     assert.strictEqual(result.exitCode, 0);
     assert.strictEqual(result.counts?.failed, 0);
     assert.strictEqual(result.counts?.passed, 1);
+    assert.strictEqual(result.counts?.todo, 1);
     assert.ok(payload.events?.includes('pass'));
     assert.ok(payload.events?.includes('summary'));
+    assert.strictEqual(process.exitCode, undefined);
+  });
+
+  test('cancels execution through AbortSignal without changing process state', async (t) => {
+    const projectDir = createEmptyProject();
+    const sourceFile = path.join(projectDir, 'source', 'slow.test.ts');
+    const compiledFile = path.join(projectDir, 'build', 'slow.test.js');
+    const previousExitCode = process.exitCode;
+
+    t.after(() => {
+      process.exitCode = previousExitCode;
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(sourceFile, '');
+    fs.writeFileSync(
+      compiledFile,
+      [
+        "const { test } = require('node:test');",
+        "test('slow', async () => new Promise((resolve) => setTimeout(resolve, 5000)));",
+        ''
+      ].join('\n')
+    );
+    fs.utimesSync(
+      sourceFile,
+      new Date('2000-01-01T00:00:00.000Z'),
+      new Date('2000-01-01T00:00:00.000Z')
+    );
+    process.exitCode = undefined;
+
+    const orchestrationScript = path.join(projectDir, 'abort-orchestrator.cjs');
+
+    fs.writeFileSync(orchestrationScript, [
+      `const { runSuiteAsync } = require(${JSON.stringify(path.join(__dirname, 'index.js'))});`,
+      'const projectDir = process.argv[2];',
+      'const controller = new AbortController();',
+      'setTimeout(() => controller.abort(), 25);',
+      'runSuiteAsync({ projectDir, signal: controller.signal })',
+      '  .then((result) => {',
+      '    console.log(JSON.stringify({ result, exitCode: process.exitCode ?? null }));',
+      '  })',
+      '  .catch((error) => {',
+      '    console.error(error);',
+      '    process.exitCode = 2;',
+      '  });',
+      ''
+    ].join('\n'));
+    const childEnvironment = { ...process.env };
+
+    delete childEnvironment['NODE_TEST_CONTEXT'];
+
+    const childResult = spawnSync(
+      process.execPath,
+      [orchestrationScript, projectDir],
+      {
+        encoding: 'utf8',
+        env: childEnvironment
+      }
+    );
+
+    assert.strictEqual(childResult.status, 0, childResult.stderr);
+
+    const payload = JSON.parse(childResult.stdout) as {
+      exitCode?: number | null;
+      result?: {
+        counts?: {
+          cancelled?: number;
+          failed?: number;
+        };
+        exitCode?: number;
+        status?: string;
+      };
+    };
+
+    assert.strictEqual(payload.result?.status, 'failed');
+    assert.strictEqual(payload.result?.exitCode, 1);
+    assert.strictEqual(payload.result?.counts?.cancelled, 1);
+    assert.strictEqual(payload.result?.counts?.failed, 0);
+    assert.strictEqual(payload.exitCode, null);
     assert.strictEqual(process.exitCode, undefined);
   });
 });

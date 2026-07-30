@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added `prepareSuite`, `runPreparedSuite`, and `runSuiteAsync` for
+  programmatic orchestration with plans, execution events, structured results,
+  `AbortSignal` cancellation, and no runner-owned `process.exitCode` changes.
+- Kept asynchronous reporter output caller-owned and waited for pending writes
+  and output errors before settling a suite result.
 - Migrated project compilation to TypeScript 7.0.2 and linting from ESLint to
   Biome 2.5.6.
 - Removed the TypeScript peer dependency so `fwa` no longer constrains or loads

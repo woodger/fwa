@@ -4,6 +4,7 @@ import type {
   AsyncSuiteRunnerOptions,
   SuiteExecutionOptions,
   SuitePlan,
+  SuitePreparationOptions,
   SuiteRunResult,
   SuiteRunnerOptions
 } from './application/run-suite';
@@ -14,6 +15,7 @@ export type {
   SuiteEventType,
   SuiteExecutionOptions,
   SuitePlan,
+  SuitePreparationOptions,
   SuiteRunResult,
   SuiteRunnerOptions,
   SuiteTestCounts
@@ -31,7 +33,7 @@ export function runSuite(options: SuiteRunnerOptions): void {
   loadSuiteModule().runSuite(options);
 }
 
-export function prepareSuite(options: SuiteRunnerOptions): SuitePlan {
+export function prepareSuite(options: SuitePreparationOptions): SuitePlan {
   return loadSuiteModule().prepareSuite(options);
 }
 

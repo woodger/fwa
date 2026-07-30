@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Writable } from 'node:stream';
 import nodeTest, {
   describe,
   test,
@@ -125,7 +125,10 @@ describe('runNodeTestFilesAsync', () => {
     const output = new PassThrough();
     const events: string[] = [];
 
-    t.mock.method(testStream, 'compose', () => reporterStream);
+    t.mock.method(testStream, 'compose', () => {
+      testStream.resume();
+      return reporterStream;
+    });
     t.mock.method(
       nodeTest,
       'run',
@@ -155,6 +158,7 @@ describe('runNodeTestFilesAsync', () => {
     testStream.emit('test:summary', {
       counts: {
         cancelled: 0,
+        failed: 0,
         passed: 1,
         skipped: 0,
         suites: 0,
@@ -166,7 +170,8 @@ describe('runNodeTestFilesAsync', () => {
       file: undefined,
       success: true
     } as never);
-    testStream.emit('end');
+    testStream.end();
+    reporterStream.end();
 
     const result = await resultPromise;
 
@@ -190,7 +195,10 @@ describe('runNodeTestFilesAsync', () => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
 
-    t.mock.method(testStream, 'compose', () => reporterStream);
+    t.mock.method(testStream, 'compose', () => {
+      testStream.resume();
+      return reporterStream;
+    });
     t.mock.method(
       nodeTest,
       'run',
@@ -218,6 +226,7 @@ describe('runNodeTestFilesAsync', () => {
     testStream.emit('test:summary', {
       counts: {
         cancelled: 0,
+        failed: 1,
         passed: 0,
         skipped: 0,
         suites: 0,
@@ -229,11 +238,278 @@ describe('runNodeTestFilesAsync', () => {
       file: undefined,
       success: false
     } as never);
-    testStream.emit('end');
+    testStream.end();
+    reporterStream.end();
 
     const result = await resultPromise;
 
     assert.strictEqual(result.success, false);
     assert.strictEqual(result.counts.failed, 1);
+  });
+
+  test('normalizes TODO failures without a native summary', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const events: string[] = [];
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        onEvent: (event) => {
+          events.push(event.type);
+        }
+      }
+    );
+
+    testStream.emit('test:fail', {
+      details: {
+        duration_ms: 1,
+        error: {
+          failureType: 'testCodeFailure'
+        }
+      },
+      name: 'expected failure',
+      nesting: 0,
+      testNumber: 1,
+      todo: true
+    } as never);
+    testStream.end();
+
+    const result = await resultPromise;
+
+    assert.strictEqual(result.success, true);
+    assert.deepStrictEqual(result.counts, {
+      cancelled: 0,
+      failed: 0,
+      passed: 0,
+      skipped: 0,
+      suites: 0,
+      tests: 1,
+      todo: 1
+    });
+    assert.ok(result.durationMs >= 0);
+    assert.deepStrictEqual(events, ['fail', 'summary']);
+  });
+
+  test('normalizes cancellations without a native summary', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      []
+    );
+
+    testStream.emit('test:fail', {
+      details: {
+        duration_ms: 1,
+        error: {
+          failureType: 'testAborted'
+        }
+      },
+      name: 'cancelled',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+    testStream.end();
+
+    const result = await resultPromise;
+
+    assert.strictEqual(result.success, false);
+    assert.deepStrictEqual(result.counts, {
+      cancelled: 1,
+      failed: 0,
+      passed: 0,
+      skipped: 0,
+      suites: 0,
+      tests: 1,
+      todo: 0
+    });
+  });
+
+  test('rejects errors thrown by the event callback', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const callbackError = new Error('event callback failed');
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        onEvent: () => {
+          throw callbackError;
+        }
+      }
+    );
+
+    testStream.emit('test:pass', {
+      details: {
+        duration_ms: 1
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+
+    await assert.rejects(resultPromise, callbackError);
+  });
+
+  test('waits for reporter writes without ending caller output', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const reporterStream = new PassThrough();
+    let completeWrite: (() => void) | undefined;
+    const output = new Writable({
+      write(_chunk, _encoding, callback) {
+        completeWrite = callback;
+      }
+    });
+    const initialErrorListeners = output.listenerCount('error');
+
+    t.after(() => {
+      output.destroy();
+    });
+    t.mock.method(testStream, 'compose', () => {
+      testStream.resume();
+      return reporterStream;
+    });
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    let settled = false;
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        output
+      }
+    );
+
+    void resultPromise.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      }
+    );
+
+    testStream.emit('test:summary', {
+      counts: {
+        cancelled: 0,
+        failed: 0,
+        passed: 1,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0,
+        topLevel: 1
+      },
+      duration_ms: 4,
+      file: undefined,
+      success: true
+    } as never);
+    testStream.end();
+    reporterStream.end('formatted output');
+
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+
+    assert.strictEqual(settled, false);
+    assert.ok(completeWrite !== undefined);
+
+    completeWrite();
+    await resultPromise;
+
+    assert.strictEqual(output.writableEnded, false);
+    assert.strictEqual(
+      output.listenerCount('error'),
+      initialErrorListeners
+    );
+  });
+
+  test('rejects output errors after native test completion', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const reporterStream = new PassThrough();
+    let completeWrite: ((error: Error) => void) | undefined;
+    const output = new Writable({
+      write(_chunk, _encoding, callback) {
+        completeWrite = callback;
+      }
+    });
+    const initialErrorListeners = output.listenerCount('error');
+
+    t.mock.method(testStream, 'compose', () => {
+      testStream.resume();
+      return reporterStream;
+    });
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        output
+      }
+    );
+
+    testStream.emit('test:summary', {
+      counts: {
+        cancelled: 0,
+        failed: 0,
+        passed: 1,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0,
+        topLevel: 1
+      },
+      duration_ms: 4,
+      file: undefined,
+      success: true
+    } as never);
+    testStream.end();
+    reporterStream.end('formatted output');
+
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+
+    assert.ok(completeWrite !== undefined);
+    completeWrite(new Error('output failed'));
+
+    await assert.rejects(resultPromise, /output failed/);
+    assert.strictEqual(
+      output.listenerCount('error'),
+      initialErrorListeners
+    );
   });
 });

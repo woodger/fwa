@@ -44,6 +44,11 @@ if (result.status === 'failed') {
 `prepareSuite` resolves the TypeScript project, discovers compiled tests, and
 checks stale output without starting tests or changing `process.exitCode`. It
 returns a `SuitePlan` containing the resolved directories and test-file list.
+Preparation options cover project resolution, pruning, runner exclusion, and
+diagnostic logging. Execution options such as `isolation` and `nodeArgs` belong
+to `runPreparedSuite`; they are intentionally not accepted by `prepareSuite` or
+stored in the plan.
+
 `runPreparedSuite` executes that snapshot. An empty plan returns
 `{ status: 'empty', exitCode: 1 }` and does not start Node's test runner.
 
@@ -65,7 +70,29 @@ output-stream errors reject it. The result includes `testFiles`, test counts,
 the execution duration, and an `exitCode` value for orchestration decisions.
 
 The asynchronous API is library-oriented: it does not write reporter output
-unless `output` is supplied and never mutates `process.exitCode`.
+unless `output` is supplied and never mutates `process.exitCode`. A supplied
+output stream remains owned by the caller: `fwa` waits for its reporter writes
+to complete but does not end the stream.
+
+Cancel an in-progress run with an `AbortSignal`:
+
+```ts
+const controller = new AbortController();
+
+const resultPromise = runSuiteAsync({
+  projectDir: process.cwd(),
+  signal: controller.signal
+});
+
+controller.abort();
+
+const result = await resultPromise;
+```
+
+Cancellation is represented as a completed unsuccessful run: the promise
+resolves with `status: 'failed'`, `exitCode: 1`, and cancelled-test counts. It
+does not reject solely because the signal was aborted. Native runner or stream
+errors still reject the promise.
 
 The four functions shown above and the exported TypeScript types from the
 package root are the public API. Internal files under `dist` are
@@ -136,7 +163,11 @@ preparation diagnostics and `output` or `onEvent` for execution output.
 
 `onEvent` receives normalized `pass`, `fail`, `summary`, `stdout`, and `stderr`
 events. The `data` field preserves the corresponding native `node:test` event
-payload.
+payload. With process isolation, Node.js versions that provide native summary
+events can emit a per-file summary followed by a cumulative summary. On
+supported runtimes without native summary events, `fwa` emits one compatible
+cumulative summary when execution ends and measures the elapsed duration
+itself. An exception thrown by `onEvent` rejects the suite promise.
 
 ## Runner File Exclusion
 
