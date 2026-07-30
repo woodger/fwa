@@ -21,6 +21,21 @@ export type TsConfigDirectories = {
   distDir: string;
 };
 
+const noInputFilesDiagnosticCode = 18003;
+// TypeScript exposes numeric Diagnostic codes but no public named constants.
+// These TS6 codes cover failures while reading or resolving an extends chain.
+const extendedConfigResolutionDiagnosticCodes = new Set([
+  5012,
+  5083,
+  6053,
+  18000
+]);
+// Extended configs are parsed as JSON source files, whose syntax errors use
+// the 1xxx diagnostic range. Compiler-option diagnostics use other ranges.
+const jsonSyntaxDiagnosticCodeStart = 1000;
+const jsonSyntaxDiagnosticCodeEnd = 2000;
+const runnerConfigOptionPattern = /^Compiler option '(?:extends|outDir|rootDir)'/;
+
 /**
  * Returns whether a path exists with the expected filesystem shape.
  */
@@ -46,6 +61,25 @@ function formatTsDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
     getCurrentDirectory: () => process.cwd(),
     getNewLine: () => '\n'
   });
+}
+
+function isRunnerConfigError(diagnostic: ts.Diagnostic): boolean {
+  if (diagnostic.code === noInputFilesDiagnosticCode) {
+    return false;
+  }
+
+  const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+  const isExtendedConfigSyntaxError = (
+    diagnostic.file !== undefined
+    && diagnostic.code >= jsonSyntaxDiagnosticCodeStart
+    && diagnostic.code < jsonSyntaxDiagnosticCodeEnd
+  );
+
+  return (
+    extendedConfigResolutionDiagnosticCodes.has(diagnostic.code)
+    || isExtendedConfigSyntaxError
+    || runnerConfigOptionPattern.test(message)
+  );
 }
 
 /**
@@ -102,6 +136,12 @@ export function readTsConfigDirectories(
     {},
     configFile
   );
+  const runnerConfigErrors = parsedConfig.errors.filter(isRunnerConfigError);
+
+  if (runnerConfigErrors.length > 0) {
+    throw new Error(formatTsDiagnostics(runnerConfigErrors));
+  }
+
   const sourceDir = parsedConfig.options.rootDir ?? configDir;
   const distDir = parsedConfig.options.outDir;
 

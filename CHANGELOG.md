@@ -10,6 +10,8 @@
   parser without a native child process or a full project snapshot.
 - Left validation of unrelated compiler options and source files to the
   consumer's build.
+- Rejected config errors that prevent resolving `extends`, `rootDir`, or
+  `outDir` instead of silently continuing with fallback paths.
 
 ## 2.0.7
 

@@ -75,8 +75,11 @@ runSuite({
 ```
 
 The callback receives successful prune diagnostics and the empty-suite message.
-Configuration errors and stale or outdated compiled-test errors are thrown
-instead. Native test reporter output is still written to the process streams.
+Errors that prevent resolving the selected TypeScript config, its `extends`
+chain, or its `rootDir` and `outDir` paths are thrown, as are stale or outdated
+compiled-test errors. Other TypeScript compiler diagnostics remain the
+responsibility of the consumer's build. Native test reporter output is still
+written to the process streams.
 
 ## Runner File Exclusion
 

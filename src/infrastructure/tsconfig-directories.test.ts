@@ -70,6 +70,62 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(projectDir, 'build'));
   });
 
+  test('throws when an extended TypeScript config cannot be read', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        extends: './missing.json',
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 'dist'
+        }
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /error TS5083: Cannot read file/
+    );
+  });
+
+  test('throws when an extended TypeScript config is malformed', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.base.json'),
+      '{"compilerOptions":'
+    );
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        extends: './tsconfig.base.json',
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 'dist'
+        }
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /error TS1109: Expression expected/
+    );
+  });
+
   test('uses tsconfig directory as source root when rootDir is not configured', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
@@ -154,6 +210,29 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(packageDir, 'dist'));
   });
 
+  test('reads directories without requiring TypeScript input files', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 'dist'
+        }
+      })
+    );
+
+    const directories = readTsConfigDirectories(projectDir);
+
+    assert.strictEqual(directories.sourceDir, path.join(projectDir, 'src'));
+    assert.strictEqual(directories.distDir, path.join(projectDir, 'dist'));
+  });
+
   test('reads directories without validating unrelated compiler options', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
@@ -168,6 +247,7 @@ describe('readTsConfigDirectories', () => {
       JSON.stringify({
         compilerOptions: {
           target: 'invalid',
+          strict: 'invalid',
           rootDir: 'src',
           outDir: 'dist'
         },
@@ -181,6 +261,56 @@ describe('readTsConfigDirectories', () => {
 
     assert.strictEqual(directories.sourceDir, path.join(projectDir, 'src'));
     assert.strictEqual(directories.distDir, path.join(projectDir, 'dist'));
+  });
+
+  test('throws when rootDir is not a string', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 123,
+          outDir: 'dist'
+        }
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /error TS5024: Compiler option 'rootDir' requires a value of type string/
+    );
+  });
+
+  test('throws when outDir is not a string', (t) => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+
+    t.after(() => {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    });
+
+    fs.writeFileSync(
+      path.join(projectDir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          rootDir: 'src',
+          outDir: 123
+        }
+      })
+    );
+
+    assert.throws(
+      () => {
+        readTsConfigDirectories(projectDir);
+      },
+      /error TS5024: Compiler option 'outDir' requires a value of type string/
+    );
   });
 
   test('throws when an explicit TypeScript config cannot be read', (t) => {

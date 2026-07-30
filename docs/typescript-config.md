@@ -46,8 +46,10 @@ options, and path normalization follow TypeScript config behavior.
 
 The runner does not validate unrelated compiler options, enumerate source
 files, or type-check the project. The consumer's build owns those checks before
-`fwa` starts. The selected config must still be readable and syntactically
-valid, and `compilerOptions.outDir` must resolve to a string.
+`fwa` starts. The selected config and its `extends` chain must still be
+readable, syntactically valid, and resolvable. A configured
+`compilerOptions.rootDir` and the required `compilerOptions.outDir` must resolve
+to path strings.
 
 ## Expected Layout
 
