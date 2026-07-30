@@ -6,7 +6,10 @@ import nodeTest, {
   type TestsStream
 } from 'node:test';
 
-import { runNodeTestFiles } from './node-test';
+import {
+  runNodeTestFiles,
+  runNodeTestFilesAsync
+} from './node-test';
 
 describe('runNodeTestFiles', () => {
   test('sets exit code when the native test runner reports a failure', (t) => {
@@ -112,5 +115,125 @@ describe('runNodeTestFiles', () => {
 
     assert.deepStrictEqual(exitCodes, [1]);
     assert.deepStrictEqual(errors, [error]);
+  });
+});
+
+describe('runNodeTestFilesAsync', () => {
+  test('returns native summary and forwards execution events', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const reporterStream = new PassThrough();
+    const output = new PassThrough();
+    const events: string[] = [];
+
+    t.mock.method(testStream, 'compose', () => reporterStream);
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        output,
+        onEvent: (event) => {
+          events.push(event.type);
+        }
+      }
+    );
+
+    testStream.emit('test:pass', {
+      details: {
+        duration_ms: 1
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+    testStream.emit('test:summary', {
+      counts: {
+        cancelled: 0,
+        passed: 1,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0,
+        topLevel: 1
+      },
+      duration_ms: 12,
+      file: undefined,
+      success: true
+    } as never);
+    testStream.emit('end');
+
+    const result = await resultPromise;
+
+    assert.deepStrictEqual(events, ['pass', 'summary']);
+    assert.deepStrictEqual(result, {
+      success: true,
+      counts: {
+        cancelled: 0,
+        failed: 0,
+        passed: 1,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0
+      },
+      durationMs: 12
+    });
+  });
+
+  test('represents failed tests in the resolved result', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const reporterStream = new PassThrough();
+
+    t.mock.method(testStream, 'compose', () => reporterStream);
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        output: new PassThrough()
+      }
+    );
+
+    testStream.emit('test:fail', {
+      details: {
+        duration_ms: 1,
+        error: new Error('failed')
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+    testStream.emit('test:summary', {
+      counts: {
+        cancelled: 0,
+        passed: 0,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0,
+        topLevel: 1
+      },
+      duration_ms: 8,
+      file: undefined,
+      success: false
+    } as never);
+    testStream.emit('end');
+
+    const result = await resultPromise;
+
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.counts.failed, 1);
   });
 });
