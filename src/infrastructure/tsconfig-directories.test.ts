@@ -7,7 +7,7 @@ import { describe, test } from 'node:test';
 import { readTsConfigDirectories } from './tsconfig-directories';
 
 describe('readTsConfigDirectories', () => {
-  test('reads rootDir and outDir from tsconfig', (t) => {
+  test('reads rootDir and outDir from a JSONC tsconfig', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
 
     t.after(() => {
@@ -18,15 +18,16 @@ describe('readTsConfigDirectories', () => {
     fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
-      JSON.stringify({
-        compilerOptions: {
-          rootDir: 'source',
-          outDir: 'build'
+      `\uFEFF{
+        // Directory options consumed by the runner.
+        "compilerOptions": {
+          "rootDir": "source",
+          "outDir": "build",
         },
-        include: [
-          'source/**/*.ts'
-        ]
-      })
+        "include": [
+          "source/**/*.ts",
+        ],
+      }`
     );
 
     const directories = readTsConfigDirectories(projectDir);
@@ -35,29 +36,43 @@ describe('readTsConfigDirectories', () => {
     assert.strictEqual(directories.distDir, path.join(projectDir, 'build'));
   });
 
-  test('reads inherited rootDir and outDir relative to the extended config', (t) => {
+  test('reads inherited directories relative to a package config', (t) => {
     const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-runner-'));
+    const configPackageDir = path.join(
+      projectDir,
+      'node_modules',
+      '@fixture',
+      'tsconfig'
+    );
 
     t.after(() => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'config'), { recursive: true });
+    fs.mkdirSync(configPackageDir, { recursive: true });
     fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
     fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
     fs.writeFileSync(
-      path.join(projectDir, 'config', 'tsconfig.base.json'),
+      path.join(configPackageDir, 'package.json'),
+      JSON.stringify({
+        name: '@fixture/tsconfig',
+        version: '1.0.0',
+        tsconfig: 'base.json'
+      })
+    );
+    fs.writeFileSync(
+      path.join(configPackageDir, 'base.json'),
       JSON.stringify({
         compilerOptions: {
-          rootDir: '../source',
-          outDir: '../build'
+          rootDir: '../../../source',
+          outDir: '../../../build'
         }
       })
     );
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
-        extends: './config/tsconfig.base.json',
+        extends: '@fixture/tsconfig',
         include: [
           'source/**/*.ts'
         ]
@@ -92,7 +107,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS5083: Cannot read file/
+      /missing\.json/
     );
   });
 
@@ -122,7 +137,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS1109: Expression expected/
+      /Invalid TypeScript config tsconfig\.base\.json: ValueExpected/
     );
   });
 
@@ -246,7 +261,7 @@ describe('readTsConfigDirectories', () => {
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
         compilerOptions: {
-          target: 'invalid',
+          target: 123,
           strict: 'invalid',
           rootDir: 'src',
           outDir: 'dist'
@@ -284,7 +299,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS5024: Compiler option 'rootDir' requires a value of type string/
+      /compilerOptions\.rootDir must be a string/
     );
   });
 
@@ -309,7 +324,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS5024: Compiler option 'outDir' requires a value of type string/
+      /compilerOptions\.outDir must be a string/
     );
   });
 
@@ -324,7 +339,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir, 'missing.json');
       },
-      /error TS5083: Cannot read file/
+      /missing\.json/
     );
   });
 
@@ -344,7 +359,7 @@ describe('readTsConfigDirectories', () => {
       () => {
         readTsConfigDirectories(projectDir);
       },
-      /error TS\d+:/
+      /Invalid TypeScript config tsconfig\.json: ValueExpected/
     );
   });
 

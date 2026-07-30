@@ -34,7 +34,8 @@
     "lint": "biome lint src"
   },
   "dependencies": {
-    "@typescript/typescript6": "6.0.2"
+    "get-tsconfig": "4.14.0",
+    "jsonc-parser": "3.3.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",

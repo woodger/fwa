@@ -6,8 +6,9 @@
   Biome 2.5.6.
 - Removed the TypeScript peer dependency so `fwa` no longer constrains or loads
   the consumer's compiler package.
-- Moved `rootDir`, `outDir`, and `extends` resolution to a private compatibility
-  parser without a native child process or a full project snapshot.
+- Moved `rootDir`, `outDir`, and `extends` resolution to a dedicated lightweight
+  config parser without a compiler runtime dependency, native child process, or
+  full project snapshot.
 - Left validation of unrelated compiler options and source files to the
   consumer's build.
 - Rejected config errors that prevent resolving `extends`, `rootDir`, or
