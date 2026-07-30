@@ -40,6 +40,15 @@ The TypeScript config parser is the current application of this rule. It reads
 only the path options required by the runner. TypeScript 7 and Biome remain
 development tools for this repository and do not define consumer requirements.
 
+## Lockfile
+
+`yarn.lock` is committed to source control so local development and CI resolve
+the same dependency tree. Dependency changes must update `package.json` and the
+lockfile together, and validation should use `yarn install --frozen-lockfile`.
+
+The lockfile remains excluded from the npm package because consumers resolve
+dependencies from their own top-level project.
+
 ## Selection Examples
 
 Allowed:
