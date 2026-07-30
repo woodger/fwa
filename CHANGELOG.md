@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0
 
 - Added `prepareSuite`, `runPreparedSuite`, and `runSuiteAsync` for
   programmatic orchestration with plans, execution events, structured results,
@@ -18,6 +18,12 @@
   consumer's build.
 - Rejected config errors that prevent resolving `extends`, `rootDir`, or
   `outDir` instead of silently continuing with fallback paths.
+- Kept package-root imports lightweight by deferring suite infrastructure and
+  config parser initialization until an API operation is invoked.
+- Reworked test discovery as iterative depth-first traversal with a shared
+  accumulator while preserving deterministic execution order.
+- Clarified that tests run on the current Node.js runtime and compatibility
+  with other runtime versions remains the consuming project's CI responsibility.
 
 ## 2.0.7
 
