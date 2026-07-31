@@ -32,6 +32,19 @@ Each behavior guide should identify the relevant implementation or exported
 declaration. Exact diagnostics or help text copied into a guide should be
 covered by tests or checked against generated output.
 
+## Localization
+
+English user-facing documentation is authoritative. Russian translations live
+under `docs/ru/` and must be updated in the same change whenever their English
+source changes.
+
+Language navigation must be present in both versions. API identifiers, CLI
+options, file paths, and exact runtime diagnostics remain unchanged in
+translations so they continue to match executable contracts.
+
+Contributor policies and `CHANGELOG.md` are not duplicated across languages
+unless a separate ownership decision defines how both copies will stay aligned.
+
 ## Release Documentation
 
 README links target documentation on the stable `main` branch. Because `docs/`

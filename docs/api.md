@@ -1,5 +1,7 @@
 # Public API
 
+English | [Русский](ru/api.md)
+
 The programmatic API is available from the package root:
 
 ```ts

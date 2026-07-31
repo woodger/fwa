@@ -3,5 +3,4 @@ src/
 yarn.lock
 tsconfig.json
 biome.json
-**/*.map
 **/*.test.*
