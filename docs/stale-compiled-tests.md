@@ -1,5 +1,7 @@
 # Stale Compiled Tests
 
+English | [Русский](ru/stale-compiled-tests.md) | [简体中文](zh/stale-compiled-tests.md)
+
 Before calling `node:test`, `fwa` checks that every discovered compiled test has
 a matching source TypeScript test and is not older than that source.
 

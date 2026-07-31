@@ -1,5 +1,7 @@
 # CLI Usage
 
+English | [Русский](ru/usage.md) | [简体中文](zh/usage.md)
+
 `fwa` is a CLI wrapper around native `node:test` execution for compiled
 TypeScript tests.
 
