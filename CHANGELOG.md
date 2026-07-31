@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.1
+
+- Added Russian and Simplified Chinese translations for the README and
+  user-facing guides, with cross-language navigation and English as the
+  authoritative source.
+- Included generated JavaScript and declaration source maps in the published
+  npm package.
+
 ## 2.1.0
 
 - Added `prepareSuite`, `runPreparedSuite`, and `runSuiteAsync` for
