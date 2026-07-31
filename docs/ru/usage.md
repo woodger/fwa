@@ -1,6 +1,6 @@
 # Использование CLI
 
-[English](../usage.md) | Русский
+[English](../usage.md) | Русский | [简体中文](../zh/usage.md)
 
 `fwa` — это CLI-обвязка над нативным `node:test` для запуска
 скомпилированных TypeScript-тестов.

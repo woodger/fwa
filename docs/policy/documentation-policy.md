@@ -34,11 +34,14 @@ covered by tests or checked against generated output.
 
 ## Localization
 
-English user-facing documentation is authoritative. Russian translations live
-under `docs/ru/` and must be updated in the same change whenever their English
-source changes.
+English user-facing documentation is authoritative. Localized documentation
+uses lowercase two-letter ISO 639-1 directory names. Russian and Chinese
+translations live under `docs/ru/` and `docs/zh/`; `zh` currently contains the
+only supported Chinese translation, written in Simplified Chinese. Each
+translation must be updated in the same change whenever its English source
+changes.
 
-Language navigation must be present in both versions. API identifiers, CLI
+Language navigation must be present in every version. API identifiers, CLI
 options, file paths, and exact runtime diagnostics remain unchanged in
 translations so they continue to match executable contracts.
 

@@ -1,6 +1,6 @@
 # TypeScript Config
 
-English | [Русский](ru/typescript-config.md)
+English | [Русский](ru/typescript-config.md) | [简体中文](zh/typescript-config.md)
 
 `fwa` reads source and output directories from the target project's TypeScript
 config.

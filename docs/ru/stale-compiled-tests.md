@@ -1,6 +1,6 @@
 # Устаревшие скомпилированные тесты
 
-[English](../stale-compiled-tests.md) | Русский
+[English](../stale-compiled-tests.md) | Русский | [简体中文](../zh/stale-compiled-tests.md)
 
 Перед вызовом `node:test` `fwa` проверяет, что каждому найденному
 скомпилированному тесту соответствует исходный TypeScript-тест и что исходник

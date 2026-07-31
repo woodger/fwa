@@ -1,6 +1,6 @@
 # Конфигурация TypeScript
 
-[English](../typescript-config.md) | Русский
+[English](../typescript-config.md) | Русский | [简体中文](../zh/typescript-config.md)
 
 `fwa` читает каталоги исходников и результата сборки из конфигурации TypeScript
 целевого проекта.

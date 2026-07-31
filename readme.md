@@ -1,6 +1,6 @@
 # fwa
 
-English | [Русский](https://github.com/woodger/fwa/blob/main/docs/ru/readme.md)
+English | [Русский](https://github.com/woodger/fwa/blob/main/docs/ru/readme.md) | [简体中文](https://github.com/woodger/fwa/blob/main/docs/zh/readme.md)
 
 [![npm version](https://img.shields.io/npm/v/fwa.svg)](https://www.npmjs.com/package/fwa)
 [![node](https://img.shields.io/node/v/fwa.svg)](https://www.npmjs.com/package/fwa)
