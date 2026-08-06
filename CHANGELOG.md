@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Stopped generating JavaScript and declaration source maps and excluded map
+  files from the published npm package.
+
 ## 2.1.1
 
 - Added Russian and Simplified Chinese translations for the README and
