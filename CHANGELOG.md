@@ -4,6 +4,8 @@
 
 - Stopped generating JavaScript and declaration source maps and excluded map
   files from the published npm package.
+- Updated `get-tsconfig` to 4.14.1, Biome to 2.5.7, and the Node.js 22 type
+  definitions to 22.20.1.
 
 ## 2.1.1
 
