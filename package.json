@@ -19,13 +19,21 @@
     "type": "git",
     "url": "git+https://git@github.com/woodger/fwa.git"
   },
-  "engines": {
-    "node": ">=20.19.0"
+  "homepage": "https://github.com/woodger/fwa#readme",
+  "bugs": {
+    "url": "https://github.com/woodger/fwa/issues"
   },
+  "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "fwa": "dist/bin.js"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "scripts": {
     "build": "tsc",
@@ -41,13 +49,5 @@
     "@biomejs/biome": "2.5.6",
     "@types/node": "^22.10.0",
     "typescript": "7.0.2"
-  },
-  "directories": {
-    "doc": "docs"
-  },
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/woodger/fwa/issues"
-  },
-  "homepage": "https://github.com/woodger/fwa#readme"
+  }
 }
