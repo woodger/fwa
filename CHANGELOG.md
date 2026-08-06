@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2.1.2
 
 - Stopped generating JavaScript and declaration source maps and excluded map
   files from the published npm package.
+- Updated the recommended npm test script to `fwa --prune` so compiled tests
+  without matching source files are removed during normal test runs.
 - Updated `get-tsconfig` to 4.14.1, Biome to 2.5.7, and the Node.js 22 type
   definitions to 22.20.1.
 
