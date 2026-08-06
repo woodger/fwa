@@ -36,7 +36,7 @@ npm install --save-dev fwa
 {
   "scripts": {
     "build": "tsc",
-    "test": "fwa"
+    "test": "fwa --prune"
   }
 }
 ```
