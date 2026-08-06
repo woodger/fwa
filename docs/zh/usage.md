@@ -30,7 +30,7 @@ TypeScript 源测试对应，然后将最终文件列表传递给 Node.js 原生
 {
   "scripts": {
     "build": "tsc",
-    "test": "fwa"
+    "test": "fwa --prune"
   }
 }
 ```

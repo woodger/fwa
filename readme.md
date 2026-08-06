@@ -34,7 +34,7 @@ Recommended script:
 {
   "scripts": {
     "build": "tsc",
-    "test": "fwa"
+    "test": "fwa --prune"
   }
 }
 ```

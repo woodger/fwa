@@ -35,7 +35,7 @@ jobs.
 {
   "scripts": {
     "build": "tsc",
-    "test": "fwa"
+    "test": "fwa --prune"
   }
 }
 ```
