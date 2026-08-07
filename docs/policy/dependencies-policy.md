@@ -37,7 +37,7 @@ A runtime integration with a compiler or toolchain must:
 - preserve observable behavior with focused tests.
 
 The TypeScript config parser is the current application of this rule. It reads
-only the path options required by the runner. TypeScript 7 and Biome remain
+only the path options required by the runner. TypeScript 7 and Oxlint remain
 development tools for this repository and do not define consumer requirements.
 
 ## Lockfile

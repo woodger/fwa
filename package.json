@@ -39,15 +39,15 @@
     "build": "tsc",
     "prepare": "tsc",
     "test": "node dist/bin.js",
-    "lint": "biome lint src"
+    "lint": "oxlint src"
   },
   "dependencies": {
     "get-tsconfig": "4.14.1",
     "jsonc-parser": "3.3.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.7",
     "@types/node": "^22.20.1",
+    "oxlint": "1.77.0",
     "typescript": "7.0.2"
   }
 }
