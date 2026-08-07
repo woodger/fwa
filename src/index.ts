@@ -14,6 +14,7 @@ export type {
   SuiteEvent,
   SuiteEventType,
   SuiteExecutionOptions,
+  SuiteOutput,
   SuitePlan,
   SuitePreparationOptions,
   SuiteRunResult,

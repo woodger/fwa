@@ -6,6 +6,7 @@ import { spec } from 'node:test/reporters';
 
 import type {
   SuiteEvent,
+  SuiteOutput,
   SuiteTestCounts
 } from '../application/run-suite';
 import { defaultRunnerConfig } from '../config';
@@ -23,7 +24,7 @@ export type RunNodeTestFilesDependencies = {
 };
 
 export type RunNodeTestFilesAsyncOptions = {
-  output?: NodeJS.WritableStream;
+  output?: SuiteOutput;
   onEvent?: (event: SuiteEvent) => void;
   signal?: AbortSignal;
 };
@@ -182,7 +183,7 @@ function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function createOutputForwarder(output: NodeJS.WritableStream): {
+function createOutputForwarder(output: SuiteOutput): {
   dispose(): void;
   stream: Writable;
 } {
@@ -225,8 +226,14 @@ export function runNodeTestFiles(
 ): void {
   const testStream = run(createRunOptions(testFiles, isolation, nodeArgs));
 
-  testStream.on('test:fail', () => {
-    dependencies.setExitCode(1);
+  testStream.on('test:fail', (data) => {
+    const event = data as unknown as NativeTestResultEvent;
+
+    // node:test reports failed TODO tests through test:fail even though they do
+    // not make the native run unsuccessful.
+    if (event.skip === undefined && event.todo === undefined) {
+      dependencies.setExitCode(1);
+    }
   });
 
   testStream.on('error', (error) => {

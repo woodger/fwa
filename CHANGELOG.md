@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Migrated linting from Biome to Oxlint 1.77.0 while preserving the accepted
+  explicit rule set.
+- Made npm the only supported package manager, replaced `yarn.lock` with
+  `package-lock.json`, and added package-manager validation for development.
+- Preserved native `node:test` success semantics when a failing test is marked
+  as TODO.
+- Exported a structural `SuiteOutput` contract so programmatic API declarations
+  do not require the consumer's ambient `NodeJS` namespace solely for reporter
+  output.
+- Regenerated the npm lockfile with source and integrity metadata for every
+  resolved package.
+
 ## 2.1.2
 
 - Stopped generating JavaScript and declaration source maps and excluded map

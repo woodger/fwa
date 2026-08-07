@@ -76,6 +76,9 @@ unless `output` is supplied and never mutates `process.exitCode`. A supplied
 output stream remains owned by the caller: `fwa` waits for its reporter writes
 to complete but does not end the stream.
 
+`output` accepts any writable destination matching the exported `SuiteOutput`
+type. Standard Node.js writable streams such as `process.stdout` are compatible.
+
 Cancel an in-progress run with an `AbortSignal`:
 
 ```ts

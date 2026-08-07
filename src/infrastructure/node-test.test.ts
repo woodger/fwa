@@ -12,7 +12,7 @@ import {
 } from './node-test';
 
 describe('runNodeTestFiles', () => {
-  test('sets exit code when the native test runner reports a failure', (t) => {
+  test('sets exit code for an unmarked native test failure', (t) => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
     const output = new PassThrough();
@@ -40,7 +40,17 @@ describe('runNodeTestFiles', () => {
       }
     );
 
-    testStream.emit('test:fail');
+    testStream.emit('test:fail', {
+      details: {
+        error: {
+          failureType: 'testCodeFailure'
+        },
+        type: 'test'
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    });
 
     assert.deepStrictEqual(exitCodes, [1]);
   });
