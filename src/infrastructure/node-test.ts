@@ -188,7 +188,17 @@ function createOutputForwarder(output: SuiteOutput): {
   stream: Writable;
 } {
   const stream = new Writable({
-    write(chunk, _encoding, callback) {
+    write(chunk: unknown, _encoding, callback) {
+      if (
+        typeof chunk !== 'string'
+        && !(chunk instanceof Uint8Array)
+      ) {
+        callback(new TypeError(
+          'Reporter output chunk must be a string or Uint8Array'
+        ));
+        return;
+      }
+
       try {
         output.write(chunk, (error?: Error | null) => {
           callback(error ?? undefined);
@@ -285,7 +295,7 @@ export async function runNodeTestFilesAsync(
       }
 
       settled = true;
-      reject(error);
+      reject(toError(error));
     };
 
     rejectExecution = rejectOnce;

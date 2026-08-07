@@ -4,6 +4,10 @@
 
 - Migrated linting from Biome to Oxlint 1.77.0 while preserving the accepted
   explicit rule set.
+- Enabled four targeted type-aware Oxlint checks for promises, invalid awaits,
+  and deprecated APIs through the `oxlint-tsgolint` backend.
+- Validated reporter output chunks before forwarding them and normalized
+  event-callback and test-stream rejection values to `Error` instances.
 - Made npm the only supported package manager, replaced `yarn.lock` with
   `package-lock.json`, and added package-manager validation for development.
 - Preserved native `node:test` success semantics when a failing test is marked

@@ -383,6 +383,42 @@ describe('runNodeTestFilesAsync', () => {
     await assert.rejects(resultPromise, callbackError);
   });
 
+  test('normalizes non-Error event callback failures', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        onEvent: () => {
+          throw 'event callback failed';
+        }
+      }
+    );
+
+    testStream.emit('test:pass', {
+      details: {
+        duration_ms: 1
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+
+    await assert.rejects(resultPromise, (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.strictEqual(error.message, 'event callback failed');
+      return true;
+    });
+  });
+
   test('waits for reporter writes without ending caller output', async (t) => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
