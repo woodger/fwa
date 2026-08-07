@@ -37,14 +37,24 @@ A runtime integration with a compiler or toolchain must:
 - preserve observable behavior with focused tests.
 
 The TypeScript config parser is the current application of this rule. It reads
-only the path options required by the runner. TypeScript 7 and Biome remain
-development tools for this repository and do not define consumer requirements.
+only the path options required by the runner. TypeScript 7, Oxlint, and the
+`oxlint-tsgolint` semantic-analysis backend remain development tools for this
+repository and do not define consumer requirements.
+
+## Package Manager
+
+npm is the only supported package manager for this repository. Yarn, pnpm, Bun,
+and other alternative package managers must not be used to install or update
+dependencies, and their lockfiles must not be committed.
+
+Use `npm install` when changing dependencies and `npm ci` for reproducible local
+or CI validation.
 
 ## Lockfile
 
-`yarn.lock` is committed to source control so local development and CI resolve
-the same dependency tree. Dependency changes must update `package.json` and the
-lockfile together, and validation should use `yarn install --frozen-lockfile`.
+`package-lock.json` is committed to source control so local development and CI
+resolve the same dependency tree. Dependency changes must update `package.json`
+and the lockfile together.
 
 The lockfile remains excluded from the npm package because consumers resolve
 dependencies from their own top-level project.

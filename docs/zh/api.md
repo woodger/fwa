@@ -71,6 +71,9 @@ const result = await runSuiteAsync({
 永远不会修改 `process.exitCode`。调用方仍拥有所提供的输出流：`fwa` 会等待
 报告器写入完成，但不会结束该流。
 
+`output` 接受任何符合导出类型 `SuiteOutput` 的可写目标。标准 Node.js
+可写流（例如 `process.stdout`）均与其兼容。
+
 可以使用 `AbortSignal` 取消正在进行的运行：
 
 ```ts

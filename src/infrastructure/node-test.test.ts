@@ -12,7 +12,7 @@ import {
 } from './node-test';
 
 describe('runNodeTestFiles', () => {
-  test('sets exit code when the native test runner reports a failure', (t) => {
+  test('sets exit code for an unmarked native test failure', (t) => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
     const output = new PassThrough();
@@ -40,7 +40,17 @@ describe('runNodeTestFiles', () => {
       }
     );
 
-    testStream.emit('test:fail');
+    testStream.emit('test:fail', {
+      details: {
+        error: {
+          failureType: 'testCodeFailure'
+        },
+        type: 'test'
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    });
 
     assert.deepStrictEqual(exitCodes, [1]);
   });
@@ -371,6 +381,42 @@ describe('runNodeTestFilesAsync', () => {
     } as never);
 
     await assert.rejects(resultPromise, callbackError);
+  });
+
+  test('normalizes non-Error event callback failures', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        onEvent: () => {
+          throw 'event callback failed';
+        }
+      }
+    );
+
+    testStream.emit('test:pass', {
+      details: {
+        duration_ms: 1
+      },
+      name: 'example',
+      nesting: 0,
+      testNumber: 1
+    } as never);
+
+    await assert.rejects(resultPromise, (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.strictEqual(error.message, 'event callback failed');
+      return true;
+    });
   });
 
   test('waits for reporter writes without ending caller output', async (t) => {

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.3
+
+- Migrated linting from Biome to Oxlint 1.77.0 while preserving the accepted
+  explicit rule set.
+- Enabled four targeted type-aware Oxlint checks for promises, invalid awaits,
+  and deprecated APIs through the `oxlint-tsgolint` backend.
+- Validated reporter output chunks before forwarding them and normalized
+  event-callback and test-stream rejection values to `Error` instances.
+- Made npm the only supported repository package manager and replaced
+  `yarn.lock` with `package-lock.json`.
+- Preserved native `node:test` success semantics when a failing test is marked
+  as TODO.
+- Exported a structural `SuiteOutput` contract so programmatic API declarations
+  do not require the consumer's ambient `NodeJS` namespace solely for reporter
+  output.
+- Regenerated the npm lockfile with source and integrity metadata for every
+  resolved package.
+
 ## 2.1.2
 
 - Stopped generating JavaScript and declaration source maps and excluded map

@@ -30,6 +30,21 @@ export type SuiteEvent = {
 };
 
 /**
+ * Writable destination accepted by the asynchronous reporter API.
+ *
+ * The structural contract limits this boundary to the operations used by the
+ * reporter while remaining compatible with native writable streams.
+ */
+export type SuiteOutput = {
+  write(
+    chunk: Uint8Array | string,
+    callback?: (error?: Error | null) => void
+  ): boolean;
+  on(event: 'error', listener: (error: unknown) => void): unknown;
+  removeListener(event: 'error', listener: (error: unknown) => void): unknown;
+};
+
+/**
  * Options for checking compiled tests before running the test runner.
  *
  * The check links compiled JS tests to the corresponding source TS tests
@@ -108,7 +123,7 @@ export type SuitePreparationOptions = Omit<
 export type SuiteExecutionOptions = {
   isolation?: TestIsolation;
   nodeArgs?: readonly string[];
-  output?: NodeJS.WritableStream;
+  output?: SuiteOutput;
   onEvent?: (event: SuiteEvent) => void;
   signal?: AbortSignal;
 };
