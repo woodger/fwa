@@ -8,8 +8,8 @@
   and deprecated APIs through the `oxlint-tsgolint` backend.
 - Validated reporter output chunks before forwarding them and normalized
   event-callback and test-stream rejection values to `Error` instances.
-- Made npm the only supported package manager, replaced `yarn.lock` with
-  `package-lock.json`, and added package-manager validation for development.
+- Made npm the only supported repository package manager and replaced
+  `yarn.lock` with `package-lock.json`.
 - Preserved native `node:test` success semantics when a failing test is marked
   as TODO.
 - Exported a structural `SuiteOutput` contract so programmatic API declarations
