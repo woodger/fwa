@@ -35,6 +35,12 @@
   "engines": {
     "node": ">=20.19.0"
   },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "prepare": "tsc",
