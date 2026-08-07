@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.3
 
 - Migrated linting from Biome to Oxlint 1.77.0 while preserving the accepted
   explicit rule set.
