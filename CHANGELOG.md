@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.4
 
 - Expanded the explicit Oxlint baseline with targeted assignment, type-safety,
   promise, coercion, sorting, and exhaustiveness checks while retaining
