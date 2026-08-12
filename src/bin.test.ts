@@ -12,7 +12,7 @@ describe('fwa CLI entrypoint', () => {
       fs.readFileSync(path.resolve(__dirname, '..', 'package.json'), 'utf8')
     ) as { version?: unknown };
 
-    assert.strictEqual(typeof packageJson.version, 'string');
+    assert.ok(typeof packageJson.version === 'string');
 
     const result = spawnSync(
       process.execPath,

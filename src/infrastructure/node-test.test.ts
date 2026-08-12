@@ -398,6 +398,9 @@ describe('runNodeTestFilesAsync', () => {
       [],
       {
         onEvent: () => {
+          // This test deliberately violates the throwing convention to verify
+          // that the async boundary normalizes arbitrary JavaScript values.
+          // oxlint-disable-next-line typescript/only-throw-error
           throw 'event callback failed';
         }
       }
