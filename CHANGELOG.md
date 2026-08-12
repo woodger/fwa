@@ -5,6 +5,7 @@
 - Expanded the explicit Oxlint baseline with targeted assignment, type-safety,
   promise, coercion, sorting, and exhaustiveness checks while retaining
   project-specific exceptions and existing coverage.
+- Updated Oxlint to 1.78.0.
 
 ## 2.1.3
 
