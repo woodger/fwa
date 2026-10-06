@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Excluded source map files and `*.spec.*` test artifacts from the published
+  npm package.
+- Clarified validation of prepared suites, pruning results, config directory
+  fallback, and empty `nodeArgs` behavior in the English, Russian, and
+  Simplified Chinese guides, and added CLI implementation references.
+
 ## 2.1.4
 
 - Expanded the explicit Oxlint baseline with targeted assignment, type-safety,
@@ -27,8 +35,7 @@
 
 ## 2.1.2
 
-- Stopped generating JavaScript and declaration source maps and excluded map
-  files from the published npm package.
+- Stopped generating JavaScript and declaration source maps.
 - Updated the recommended npm test script to `fwa --prune` so compiled tests
   without matching source files are removed during normal test runs.
 - Updated `get-tsconfig` to 4.14.1, Biome to 2.5.7, and the Node.js 22 type

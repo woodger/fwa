@@ -2,7 +2,7 @@
 
 English | [Русский](ru/stale-compiled-tests.md) | [简体中文](zh/stale-compiled-tests.md)
 
-Before calling `node:test`, `fwa` checks that every discovered compiled test has
+During suite preparation, `fwa` checks that every discovered compiled test has
 a matching source TypeScript test and is not older than that source.
 
 This blocks orphaned compiled tests and catches the common case where a source
@@ -41,8 +41,11 @@ Pruned stale compiled tests without source:
 Pruning is explicit because deleting files from `outDir` changes filesystem
 state. The default behavior is to fail and report what should be removed.
 
-If pruning removes every discovered test, the deletion still succeeds. `fwa`
-then reports that no runnable tests remain and sets `process.exitCode = 1`.
+If pruning removes every discovered test, the deletion still succeeds. The CLI
+and `runSuite` then report that no runnable tests remain and set
+`process.exitCode = 1`. `prepareSuite` returns an empty plan; asynchronous
+execution returns `status: 'empty'` and `exitCode: 1` without changing
+`process.exitCode`.
 
 For safety, pruning requires `outDir` to be a dedicated directory inside the
 selected project root. It is rejected when `outDir` is the project root,

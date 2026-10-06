@@ -51,8 +51,13 @@ diagnostic logging. Execution options such as `isolation` and `nodeArgs` belong
 to `runPreparedSuite`; they are intentionally not accepted by `prepareSuite` or
 stored in the plan.
 
-`runPreparedSuite` executes that snapshot. An empty plan returns
-`{ status: 'empty', exitCode: 1 }` and does not start Node's test runner.
+`runPreparedSuite` executes the recorded file paths without finding tests again
+or rechecking source existence and freshness. The plan does not snapshot file
+contents. If the TypeScript config, source tests, or compiled tests change,
+prepare a new plan before execution.
+
+An empty plan returns `{ status: 'empty', exitCode: 1 }` and does not start
+Node's test runner.
 
 For the common one-call case, use `runSuiteAsync`:
 
@@ -141,8 +146,11 @@ Pruning is disabled by default.
 For safety, pruning requires the configured `outDir` to be a dedicated
 directory inside `projectDir`.
 
-If pruning removes every discovered test, the files are still removed and the
-run then reports an empty suite through `log` and sets `process.exitCode = 1`.
+If pruning removes every discovered test, the files are still removed and
+preparation reports an empty suite through `log` when supplied. The CLI and
+`runSuite` set `process.exitCode = 1`. `prepareSuite` returns an empty plan;
+asynchronous execution returns `status: 'empty'` and `exitCode: 1` without
+changing `process.exitCode`.
 
 ## Diagnostic Output
 
@@ -224,8 +232,8 @@ runSuite({
 });
 ```
 
-The `nodeArgs` option requires Node.js `>=22.10.0` when explicitly configured.
-It cannot be used with `isolation: 'none'`.
+A non-empty `nodeArgs` array requires Node.js `>=22.10.0` and cannot be used with
+`isolation: 'none'`. An empty array behaves like an omitted option.
 
 ## Errors And Exit Code
 

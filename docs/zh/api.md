@@ -48,8 +48,12 @@ if (result.status === 'failed') {
 `isolation` 和 `nodeArgs` 等执行选项属于 `runPreparedSuite`；
 `prepareSuite` 有意不接受这些选项，也不会将它们保存在计划中。
 
-`runPreparedSuite` 执行该快照。空计划会返回
-`{ status: 'empty', exitCode: 1 }`，并且不会启动 Node.js 测试运行器。
+`runPreparedSuite` 会按照记录的文件路径执行测试，不会重新查找文件，也不会
+再次检查源文件是否存在或是否比已编译测试更新。计划不会保存文件内容的快照。
+如果 TypeScript 配置、源测试或已编译测试发生变化，应在执行前重新准备计划。
+
+空计划会返回 `{ status: 'empty', exitCode: 1 }`，并且不会启动 Node.js
+测试运行器。
 
 常见的单次调用场景可以使用 `runSuiteAsync`：
 
@@ -132,8 +136,10 @@ runSuite({
 
 为了安全，清理要求已配置的 `outDir` 是 `projectDir` 内的专用目录。
 
-如果清理删除了所有发现的测试，文件仍会被删除；随后本次运行会通过 `log`
-报告空测试套件，并设置 `process.exitCode = 1`。
+如果清理删除了所有发现的测试，文件仍会被删除；准备阶段会通过调用方提供的
+`log` 报告空测试套件。CLI 和 `runSuite` 会设置 `process.exitCode = 1`。
+`prepareSuite` 会返回空计划；异步执行会返回 `status: 'empty'` 和
+`exitCode: 1`，但不会更改 `process.exitCode`。
 
 ## 诊断输出
 
@@ -210,8 +216,8 @@ runSuite({
 });
 ```
 
-显式配置 `nodeArgs` 选项时要求 Node.js `>=22.10.0`。该选项不能与
-`isolation: 'none'` 一起使用。
+非空 `nodeArgs` 数组要求 Node.js `>=22.10.0`，并且不能与
+`isolation: 'none'` 一起使用。空数组的行为与省略该选项相同。
 
 ## 错误和退出码
 

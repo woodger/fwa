@@ -153,3 +153,15 @@ node --test dist/**/*.test.js dist/**/*.spec.js
 
 `fwa` самостоятельно обходит `outDir` и передаёт `node:test` явный список
 файлов.
+
+## Источник истины
+
+Парсинг CLI, проверки возможностей Node.js и интеграция с процессом реализованы
+в следующих файлах:
+
+- [`src/bootstrap/cli.ts`](../../src/bootstrap/cli.ts)
+- [`src/infrastructure/node-runtime.ts`](../../src/infrastructure/node-runtime.ts)
+- [`src/bin.ts`](../../src/bin.ts)
+
+Этот документ описывает использование. Точный контракт парсинга CLI и проверок
+возможностей Node.js определяется кодом и тестами.

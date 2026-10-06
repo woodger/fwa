@@ -33,8 +33,8 @@ fwa ./packages/example --project tsconfig.test.json
 `compilerOptions.outDir` 是必需的，因为 `fwa` 运行已编译的 JavaScript 测试。
 如果没有 `outDir`，运行器无法确定已编译输出的位置。
 
-`compilerOptions.rootDir` 是可选的。省略时，`fwa` 会将包含
-`tsconfig.json` 的目录视为源文件根目录。
+`compilerOptions.rootDir` 是可选的。省略时，`fwa` 会将所选配置文件所在的
+目录视为源文件根目录。
 
 为了稳定地映射源文件和输出文件，应显式设置 `compilerOptions.rootDir`。
 大多数项目通常使用 `"src"` 或 `"."`。

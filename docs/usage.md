@@ -148,3 +148,15 @@ containers, and CI.
 
 `fwa` avoids this by walking `outDir` itself and passing explicit file paths to
 `node:test`.
+
+## Source Of Truth
+
+CLI parsing, runtime capability checks, and process integration are implemented
+in:
+
+- [`src/bootstrap/cli.ts`](../src/bootstrap/cli.ts)
+- [`src/infrastructure/node-runtime.ts`](../src/infrastructure/node-runtime.ts)
+- [`src/bin.ts`](../src/bin.ts)
+
+Use this document as a usage guide. The code and tests remain the source of
+truth for exact CLI parsing and runtime capability checks.

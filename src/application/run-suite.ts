@@ -102,7 +102,7 @@ export type SuiteRunnerOptions = {
   /**
    * Node.js CLI flags passed to isolated test child processes.
    *
-   * Requires Node.js >= 22.10.0 when explicitly configured.
+   * Requires Node.js >= 22.10.0 when non-empty.
    */
   nodeArgs?: readonly string[];
 
