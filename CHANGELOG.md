@@ -7,8 +7,8 @@
 - Clarified validation of prepared suites, pruning results, config directory
   fallback, and empty `nodeArgs` behavior in the English, Russian, and
   Simplified Chinese guides, and added CLI implementation references.
-- Expanded coverage of the public package entrypoint and asynchronous suite
-  contracts, with focused runtime and configuration tests.
+- Expanded coverage of asynchronous suite contracts, with focused runtime
+  and configuration tests.
 - Updated `get-tsconfig` to 4.14.3, Oxlint to 1.87.0, `oxlint-tsgolint`
   to 7.0.2003, and the Node.js 22 type definitions to 22.20.5.
 
