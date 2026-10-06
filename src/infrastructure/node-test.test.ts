@@ -6,6 +6,7 @@ import nodeTest, {
   type TestsStream
 } from 'node:test';
 
+import type { SuiteEvent } from '../application/run-suite';
 import {
   runNodeTestFiles,
   runNodeTestFilesAsync
@@ -129,11 +130,10 @@ describe('runNodeTestFiles', () => {
 });
 
 describe('runNodeTestFilesAsync', () => {
-  test('returns native summary and forwards execution events', async (t) => {
+  test('returns the native summary', async (t) => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
     const output = new PassThrough();
-    const events: string[] = [];
 
     t.mock.method(testStream, 'compose', () => {
       testStream.resume();
@@ -150,10 +150,7 @@ describe('runNodeTestFilesAsync', () => {
       'process',
       [],
       {
-        output,
-        onEvent: (event) => {
-          events.push(event.type);
-        }
+        output
       }
     );
 
@@ -185,7 +182,6 @@ describe('runNodeTestFilesAsync', () => {
 
     const result = await resultPromise;
 
-    assert.deepStrictEqual(events, ['pass', 'summary']);
     assert.deepStrictEqual(result, {
       success: true,
       counts: {
@@ -199,6 +195,61 @@ describe('runNodeTestFilesAsync', () => {
       },
       durationMs: 12
     });
+  });
+
+  test('forwards native event data with normalized event types', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const events: SuiteEvent[] = [];
+    const pass = { name: 'example', nesting: 0, testNumber: 1 };
+    const stdout = { message: 'example output' };
+    const stderr = { message: 'example diagnostic' };
+    const summary = {
+      counts: {
+        cancelled: 0,
+        failed: 0,
+        passed: 1,
+        skipped: 0,
+        suites: 0,
+        tests: 1,
+        todo: 0,
+        topLevel: 1
+      },
+      duration_ms: 1,
+      file: undefined,
+      success: true
+    };
+
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      {
+        onEvent: (event) => {
+          events.push(event);
+        }
+      }
+    );
+
+    testStream.emit('test:pass', pass as never);
+    testStream.emit('test:stdout', stdout as never);
+    testStream.emit('test:stderr', stderr as never);
+    testStream.emit('test:summary', summary as never);
+    testStream.end();
+
+    await resultPromise;
+
+    assert.deepStrictEqual(events, [
+      { type: 'pass', data: pass },
+      { type: 'stdout', data: stdout },
+      { type: 'stderr', data: stderr },
+      { type: 'summary', data: summary }
+    ]);
   });
 
   test('represents failed tests in the resolved result', async (t) => {
@@ -422,7 +473,7 @@ describe('runNodeTestFilesAsync', () => {
     });
   });
 
-  test('waits for reporter writes without ending caller output', async (t) => {
+  test('waits for reporter writes to complete', async (t) => {
     const testStream = new PassThrough({ objectMode: true });
     const reporterStream = new PassThrough();
     let completeWrite: (() => void) | undefined;
@@ -431,7 +482,6 @@ describe('runNodeTestFilesAsync', () => {
         completeWrite = callback;
       }
     });
-    const initialErrorListeners = output.listenerCount('error');
 
     t.after(() => {
       output.destroy();
@@ -491,6 +541,42 @@ describe('runNodeTestFilesAsync', () => {
     assert.ok(completeWrite !== undefined);
 
     completeWrite();
+    await resultPromise;
+  });
+
+  test('keeps caller output open after reporting', async (t) => {
+    const testStream = new PassThrough({ objectMode: true });
+    const reporterStream = new PassThrough();
+    const output = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      }
+    });
+    const initialErrorListeners = output.listenerCount('error');
+
+    t.after(() => {
+      output.destroy();
+    });
+    t.mock.method(testStream, 'compose', () => {
+      testStream.resume();
+      return reporterStream;
+    });
+    t.mock.method(
+      nodeTest,
+      'run',
+      () => testStream as unknown as TestsStream
+    );
+
+    const resultPromise = runNodeTestFilesAsync(
+      ['/project/dist/example.test.js'],
+      'process',
+      [],
+      { output }
+    );
+
+    testStream.end();
+    reporterStream.end('formatted output');
+
     await resultPromise;
 
     assert.strictEqual(output.writableEnded, false);

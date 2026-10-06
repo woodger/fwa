@@ -14,8 +14,6 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       `\uFEFF{
@@ -24,9 +22,6 @@ describe('readTsConfigDirectories', () => {
           "rootDir": "source",
           "outDir": "build",
         },
-        "include": [
-          "source/**/*.ts",
-        ],
       }`
     );
 
@@ -50,8 +45,6 @@ describe('readTsConfigDirectories', () => {
     });
 
     fs.mkdirSync(configPackageDir, { recursive: true });
-    fs.mkdirSync(path.join(projectDir, 'source'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'source', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(configPackageDir, 'package.json'),
       JSON.stringify({
@@ -72,10 +65,7 @@ describe('readTsConfigDirectories', () => {
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
-        extends: '@fixture/tsconfig',
-        include: [
-          'source/**/*.ts'
-        ]
+        extends: '@fixture/tsconfig'
       })
     );
 
@@ -148,17 +138,12 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'src', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
         compilerOptions: {
           outDir: 'dist'
-        },
-        include: [
-          'src/**/*.ts'
-        ]
+        }
       })
     );
 
@@ -175,18 +160,13 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'test-source'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'test-source', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.test.json'),
       JSON.stringify({
         compilerOptions: {
           rootDir: 'test-source',
           outDir: 'test-build'
-        },
-        include: [
-          'test-source/**/*.ts'
-        ]
+        }
       })
     );
 
@@ -204,18 +184,14 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(packageDir, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(packageDir, 'src', 'sample.ts'), '');
+    fs.mkdirSync(packageDir, { recursive: true });
     fs.writeFileSync(
       path.join(packageDir, 'tsconfig.json'),
       JSON.stringify({
         compilerOptions: {
           rootDir: 'src',
           outDir: 'dist'
-        },
-        include: [
-          'src/**/*.ts'
-        ]
+        }
       })
     );
 
@@ -255,8 +231,6 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'src', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
@@ -265,10 +239,7 @@ describe('readTsConfigDirectories', () => {
           strict: 'invalid',
           rootDir: 'src',
           outDir: 'dist'
-        },
-        include: [
-          'src/**/*.ts'
-        ]
+        }
       })
     );
 
@@ -371,19 +342,14 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(parentDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(parentDir, 'src'), { recursive: true });
     fs.mkdirSync(projectDir, { recursive: true });
-    fs.writeFileSync(path.join(parentDir, 'src', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(parentDir, 'tsconfig.json'),
       JSON.stringify({
         compilerOptions: {
           rootDir: 'src',
           outDir: 'dist'
-        },
-        include: [
-          'src/**/*.ts'
-        ]
+        }
       })
     );
 
@@ -402,17 +368,12 @@ describe('readTsConfigDirectories', () => {
       fs.rmSync(projectDir, { recursive: true, force: true });
     });
 
-    fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'src', 'sample.ts'), '');
     fs.writeFileSync(
       path.join(projectDir, 'tsconfig.json'),
       JSON.stringify({
         compilerOptions: {
           rootDir: 'src'
-        },
-        include: [
-          'src/**/*.ts'
-        ]
+        }
       })
     );
 
