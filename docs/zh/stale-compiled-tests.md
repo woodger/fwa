@@ -2,7 +2,7 @@
 
 [English](../stale-compiled-tests.md) | [Русский](../ru/stale-compiled-tests.md) | 简体中文
 
-调用 `node:test` 之前，`fwa` 会检查每个发现的已编译测试是否都有对应的
+准备测试套件时，`fwa` 会检查每个发现的已编译测试是否都有对应的
 TypeScript 源测试，并且已编译测试不早于该源文件。
 
 这可以阻止运行失去源文件的已编译测试，并发现源测试在已编译输出生成后又被
@@ -39,8 +39,10 @@ Pruned stale compiled tests without source:
 删除 `outDir` 中的文件会改变文件系统状态，因此必须显式启用清理。默认行为是
 执行失败，并报告应删除的文件。
 
-如果清理删除了所有发现的测试，删除操作仍会成功。随后 `fwa` 会报告没有可运行
-的测试，并设置 `process.exitCode = 1`。
+如果清理删除了所有发现的测试，删除操作仍会成功。随后 CLI 和 `runSuite`
+会报告没有可运行的测试，并设置 `process.exitCode = 1`。`prepareSuite` 会
+返回空计划；异步执行会返回 `status: 'empty'` 和 `exitCode: 1`，但不会更改
+`process.exitCode`。
 
 为了安全，清理要求 `outDir` 是所选项目根目录内的专用目录。如果 `outDir`
 就是项目根目录、解析到项目根目录之外，或是指向外部目录的符号链接，清理会被

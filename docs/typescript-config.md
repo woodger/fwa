@@ -39,7 +39,7 @@ fwa ./packages/example --project tsconfig.test.json
 tests. Without `outDir`, compiled output location is ambiguous for this runner.
 
 `compilerOptions.rootDir` is optional. If it is omitted, `fwa` treats the
-directory containing `tsconfig.json` as the source root.
+directory containing the selected config file as the source root.
 
 For stable source-to-output mapping, set `compilerOptions.rootDir` explicitly.
 In most projects this is usually `"src"` or `"."`.

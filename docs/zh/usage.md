@@ -141,3 +141,13 @@ node --test dist/**/*.test.js dist/**/*.spec.js
 
 `fwa` 会自行遍历 `outDir`，并将明确的文件路径传递给 `node:test`，从而避免
 这一问题。
+
+## 权威来源
+
+CLI 参数解析、运行时功能检查以及与进程的集成实现在以下文件中：
+
+- [`src/bootstrap/cli.ts`](../../src/bootstrap/cli.ts)
+- [`src/infrastructure/node-runtime.ts`](../../src/infrastructure/node-runtime.ts)
+- [`src/bin.ts`](../../src/bin.ts)
+
+本文档是使用指南。CLI 参数解析和运行时功能检查的精确约定仍以代码和测试为准。
