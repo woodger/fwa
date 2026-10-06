@@ -3,6 +3,5 @@ src/
 package-lock.json
 tsconfig.json
 .oxlintrc.json
-**/*.map
 **/*.test.*
-**/*.spec.*
+MR.md
