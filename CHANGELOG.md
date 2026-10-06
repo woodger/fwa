@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased
+## 2.1.5
 
 - Excluded source map files and `*.spec.*` test artifacts from the published
   npm package.
 - Clarified validation of prepared suites, pruning results, config directory
   fallback, and empty `nodeArgs` behavior in the English, Russian, and
   Simplified Chinese guides, and added CLI implementation references.
+- Expanded coverage of the public package entrypoint and asynchronous suite
+  contracts, with focused runtime and configuration tests.
 
 ## 2.1.4
 

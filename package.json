@@ -1,6 +1,6 @@
 {
   "name": "fwa",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Compiled TypeScript test runner for Node.js",
   "keywords": [
     "test",
